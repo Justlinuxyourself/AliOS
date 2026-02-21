@@ -28,7 +28,7 @@ void beep_ex(int duration_ms, int freq) {
     if (duration_ms > 0) {
         // Calculate target based on 100Hz (10ms per tick)
         // If it still feels too fast, use (duration_ms / 5) to compensate for your 200Hz bug
-        unsigned long long target = timer_ticks + (duration_ms / 5); 
+        unsigned long long target = timer_ticks + (duration_ms / 10); 
         
         while (timer_ticks < target) {
             timer_wait_tick(); // Force a poll to update ticks
