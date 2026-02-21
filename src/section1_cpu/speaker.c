@@ -23,22 +23,20 @@ void nosound() {
 }
 
 void beep_ex(int duration_ms, int freq) {
-    // 1. Start the hardware
     play_sound(freq);
 
-    // 2. THE FEATURE: If duration is 0, we exit and leave the sound ON
-    // Useful for the Lockout!
-    if (duration_ms == 0) return;
-
-    // 3. THE MATH: If 1 second (1000ms) was duration * 1,000,000,
-    // then 1ms is duration * 1,000.
-    for(volatile unsigned long long i = 0; i < (unsigned long long)duration_ms * 1000; i++) {
-        __asm__ volatile("pause"); 
+    if (duration_ms > 0) {
+        // Calculate target based on 100Hz (10ms per tick)
+        // If it still feels too fast, use (duration_ms / 5) to compensate for your 200Hz bug
+        unsigned long long target = timer_ticks + (duration_ms / 5); 
+        
+        while (timer_ticks < target) {
+            timer_wait_tick(); // Force a poll to update ticks
+        }
     }
-
-    // 4. Turn it off
     nosound();
 }
+
 
 // Shell command beep
 void beep() {
