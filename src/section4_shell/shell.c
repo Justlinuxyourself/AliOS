@@ -235,6 +235,22 @@ void cmd_beep(){
     sleep(1);
     nosound();
 }
+void cmd_about_dev() {
+	vga_write("Hi my name is ali, my age is 12, and i like planes :3");
+}
+void draw_custom_plane() {
+    int col = 25; // Center it
+    
+    vga_set_cursor(col, 5);  vga_write("            __\\/__");
+    vga_set_cursor(col, 6);  vga_write("           `==/\\==` ");
+    vga_set_cursor(col, 7);  vga_write(" ____________/__\\____________");
+    vga_set_cursor(col, 8);  vga_write("/____________________________\\");
+    vga_set_cursor(col, 9);  vga_write("  __||__||__/.--.\\__||__||__");
+    vga_set_cursor(col, 10); vga_write(" /__|___|___( >< )___|___|__\\");
+    vga_set_cursor(col, 11); vga_write("           _/`--`\\_");
+    vga_set_cursor(col, 12); vga_write("          (/------\\)");
+}
+
 /* --- Shell Logic --- */
 void shell_register_command(const char* name, const char* desc, command_func func) {
     command_node_t* new_node = (command_node_t*)kmalloc(sizeof(command_node_t));
@@ -263,6 +279,8 @@ void shell_init() {
     shell_register_command("lock", "Locks the system", shell_lock);
     shell_register_command("test",     "Verify timer calibration",    cmd_test);
     shell_register_command("beep", "Play a system alert sound", cmd_beep);
+    shell_register_command("about_dev", "About Dev", cmd_about_dev);
+    shell_register_command("plane", "Show a art of a plane", draw_custom_plane);
 }
 
 /* src/section4_shell/shell.c */

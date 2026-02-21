@@ -32,7 +32,20 @@ void vga_write_num_at(int pos, int num) {
     vga_hardware[pos + 1] = (unsigned short)((num % 10) + '0') | (unsigned short)0x1F << 8;
 }
 
-/* src/section2_video/vga.c */
+void vga_set_cursor(int x, int y) {
+    // Ensure we don't go out of bounds or hit the status bar (Row 24)
+    if (x >= WIDTH) x = WIDTH - 1;
+    if (y >= HEIGHT - 1) y = HEIGHT - 2;
+
+    tty_t* active = &ttys[current_tty];
+    
+    // Calculate the 1D array index from 2D coordinates
+    // index = (Row * 80) + Column
+    active->cursor_pos = (y * WIDTH) + x;
+
+    // Move the actual blinking hardware cursor to this spot
+    update_hardware_cursor(active->cursor_pos);
+}
 
 void vga_draw_status_bar() {
     unsigned short* vga_hardware = (unsigned short*)VGA_ADDRESS;
