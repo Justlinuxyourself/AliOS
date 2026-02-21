@@ -1,0 +1,1147 @@
+.
+├── alios4.bin
+├── alios4.iso
+├── boot.o
+├── cmos.o
+├── everything.txt
+├── grub.cfg
+├── heap.o
+├── isodir
+│   └── boot
+│       ├── alios4.bin
+│       └── grub
+│           └── grub.cfg
+├── kbd.o
+├── kernel.o
+├── linker.ld
+├── Makefile
+├── shell.o
+├── speaker.o
+├── src
+│   ├── kernel.c
+│   ├── section1_cpu
+│   │   ├── boot.asm
+│   │   ├── heap.c
+│   │   ├── heap.h
+│   │   ├── io.h
+│   │   ├── speaker.c
+│   │   └── timer.c
+│   ├── section2_video
+│   │   └── vga.c
+│   ├── section3_io
+│   │   ├── cmos.c
+│   │   └── kbd.c
+│   └── section4_shell
+│       ├── shell.c
+│       └── shell.h
+├── timer.o
+└── vga.o
+
+9 directories, 29 files
+
+--- FILE: ./src/section1_cpu/boot.asm ---
+; --- src/section1_cpu/boot.asm ---
+; LINKED TO NOTEBOOK: SECTION I - Bootloader & Paging
+
+[bits 32]
+section .multiboot_header
+align 8
+header_start:
+    dd 0xe85250d6                ; Magic number (Multiboot 2)
+    dd 0                         ; Architecture (i386)
+    dd header_end - header_start ; Length
+    dd 0x100000000 - (0xe85250d6 + 0 + (header_end - header_start)) ; Checksum
+    dw 0, 0
+    dd 8
+header_end:
+
+section .text
+global _start
+extern kernel_main
+
+_start:
+    ; Initialize stack
+    mov esp, stack_top
+
+    ; 1. Clear Page Tables (0x1000 to 0x4000)
+    ; This prevents junk data from causing a Triple Fault
+    mov edi, 0x1000
+    xor eax, eax
+    mov ecx, 4096                ; Clear 16KB (PML4, PDPT, and PDT)
+    rep stosd
+
+    ; 2. Build the 4-Level Paging Hierarchy
+    ; Structure: PML4 [0x1000] -> PDPT [0x2000] -> PDT [0x3000]
+    ; Flags: 0x3 (Present + Read/Write)
+    mov dword [0x1000], 0x2003   ; PML4 Entry 0 points to PDPT
+    mov dword [0x2000], 0x3003   ; PDPT Entry 0 points to PDT
+    
+    ; 3. Identity Map 10MB of RAM using 2MB "Huge Pages"
+    ; 0x83 = Present + R/W + Huge Page (Bit 7)
+    mov dword [0x3000], 0x00000083  ; 0MB - 2MB (Kernel)
+    mov dword [0x3008], 0x00200083  ; 2MB - 4MB (Heap Start)
+    mov dword [0x3010], 0x00400083  ; 4MB - 6MB
+    mov dword [0x3018], 0x00600083  ; 6MB - 8MB
+    mov dword [0x3020], 0x00800083  ; 8MB - 10MB
+
+    ; 4. Enable PAE (Physical Address Extension)
+    mov eax, cr4
+    or eax, 1 << 5
+    mov cr4, eax
+
+    ; 5. Set CR3 to PML4 address
+    mov eax, 0x1000
+    mov cr3, eax
+
+    ; 6. Enable Long Mode in EFER MSR
+    mov ecx, 0xC0000080
+    rdmsr
+    or eax, 1 << 8
+    wrmsr
+
+    ; 7. Enable Paging in CR0
+    mov eax, cr0
+    or eax, 1 << 31
+    mov cr0, eax
+
+    ; 8. Load 64-bit GDT and jump to 64-bit code
+    lgdt [gdt64.ptr]
+    jmp 0x08:init_64
+
+[bits 64]
+init_64:
+    ; Ensure segment registers are clean for 64-bit
+    mov ax, 0
+    mov ss, ax
+    mov ds, ax
+    mov es, ax
+    
+    ; Call the C kernel
+    call kernel_main
+    
+    ; If kernel returns, halt the CPU
+.halt:
+    hlt
+    jmp .halt
+
+section .rodata
+gdt64:
+    dq 0 ; Null Descriptor
+    ; Code Descriptor: Access 0x9A, Flags 0x20 (64-bit)
+    dq (1<<43) | (1<<44) | (1<<47) | (1<<53) 
+.ptr:
+    dw $ - gdt64 - 1
+    dq gdt64
+
+section .bss
+align 4096
+stack_bottom:
+    resb 16384
+stack_top:
+--- FILE: ./src/section1_cpu/heap.c ---
+/* LINKED TO NOTEBOOK: SECTION VI - Memory Management */
+#include "heap.h"
+
+// Start heap at 2MB mark to avoid clobbering the kernel
+unsigned char* heap_ptr = (unsigned char*)0x200000;
+unsigned int bytes_allocated = 0; // New counter
+
+void* kmalloc(unsigned int size) {
+    void* res = (void*)heap_ptr;
+    heap_ptr += size;
+    bytes_allocated += size; // Track every allocation
+    return res;
+}
+
+unsigned int get_heap_usage() {
+    return bytes_allocated;
+}
+
+
+--- FILE: ./src/section1_cpu/heap.h ---
+#ifndef HEAP_H
+#define HEAP_H
+
+void* kmalloc(unsigned int size);
+
+#endif
+
+--- FILE: ./src/section1_cpu/io.h ---
+/* src/section1_cpu/io.h */
+#ifndef IO_H
+#define IO_H
+#define PIT_COMMAND 0x43
+#define PIT_CHANNEL0 0x40
+// Read a byte from a port
+static inline unsigned char inb(unsigned short port) {
+    unsigned char val;
+    __asm__ volatile ("inb %1, %0" : "=a"(val) : "Nd"(port));
+    return val;
+}
+
+// Write a byte to a port
+static inline void outb(unsigned short port, unsigned char val) {
+    __asm__ volatile ("outb %0, %1" : : "a"(val), "Nd"(port));
+}
+
+/* Add this below your outb function */
+static inline void cpuid(int code, unsigned int* a, unsigned int* b, unsigned int* c, unsigned int* d) {
+    __asm__ volatile ("cpuid" : "=a"(*a), "=b"(*b), "=c"(*c), "=d"(*d) : "a"(code));
+}
+#endif
+
+--- FILE: ./src/section1_cpu/timer.c ---
+/* src/section1_cpu/timer.c */
+#include "io.h"
+
+unsigned long long timer_ticks = 0;
+
+void timer_init() {
+    // 100Hz: 1193182 / 100 = 11931
+    unsigned int divisor = 11931; 
+
+    // 0x36 = Square wave mode, LSB then MSB
+    outb(0x43, 0x36);
+    outb(0x40, (unsigned char)(divisor & 0xFF));        // LSB
+    outb(0x40, (unsigned char)((divisor >> 8) & 0xFF)); // MSB
+}
+
+void timer_wait_tick() {
+    static unsigned short last_val = 0xFFFF;
+    unsigned short current_val;
+
+    while (1) {
+        // 1. Latch the PIT (Freezes the count so we can read it safely)
+        outb(0x43, 0x00);
+        
+        // 2. Read LSB then MSB
+        unsigned char low = inb(0x40);
+        unsigned char high = inb(0x40);
+        current_val = (high << 8) | low;
+
+        // 3. Since PIT counts DOWN (from 11931 to 0):
+        // If current is HIGHER than last, it definitely wrapped around (Tick!)
+        if (current_val > last_val) {
+            last_val = current_val;
+            timer_ticks++;
+            return; // Success! One tick recorded.
+        }
+
+        last_val = current_val;
+        
+        // 4. Give the hardware a tiny breather
+        __asm__ volatile("pause");
+    }
+}
+
+unsigned int get_uptime_seconds() {
+    // CRITICAL: Must divide by 100 because frequency is 100Hz
+    return (unsigned int)(timer_ticks / 200); 
+}
+
+void sleep(int seconds) {
+    unsigned long long target = timer_ticks + (seconds * 100);
+    while (timer_ticks < target) {
+        timer_wait_tick();
+    }
+}
+
+--- FILE: ./src/section1_cpu/speaker.c ---
+/* src/section1_cpu/speaker.c */
+#include "io.h"
+
+// Tell the speaker to use your calibrated timer
+extern void timer_wait_tick(); 
+
+void beep() {
+    // 1. Set the Frequency (approx 1kHz)
+    outb(0x43, 0xB6);
+    outb(0x42, 0x33); 
+    outb(0x42, 0x05); 
+
+    // 2. Turn Speaker ON
+    unsigned char tmp = inb(0x61);
+    outb(0x61, tmp | 3);
+
+    // 3. THE FIX: Wait for 40 real ticks (0.2 seconds at 200Hz)
+    // If it's still too fast, change 40 to 100
+    for(int i = 0; i < 100; i++) {
+        timer_wait_tick();
+    }
+
+    // 4. Turn Speaker OFF
+    outb(0x61, inb(0x61) & 0xFC);
+}
+
+void play_sound(unsigned int nFrequence) {
+    unsigned int Div;
+    unsigned char tmp;
+
+    // Set the PIT to the desired frequency
+    Div = 1193180 / nFrequence;
+    outb(0x43, 0xb6);
+    outb(0x42, (unsigned char) (Div) );
+    outb(0x42, (unsigned char) (Div >> 8));
+
+    // And play the sound using the PC speaker
+    tmp = inb(0x61);
+    if (tmp != (tmp | 3)) {
+        outb(0x61, tmp | 3);
+    }
+}
+
+
+void nosound() {
+    unsigned char tmp = inb(0x61) & 0xFC;
+    outb(0x61, tmp);
+}
+
+
+
+--- FILE: ./src/section2_video/vga.c ---
+/* src/section2_video/vga.c */
+/* LINKED TO NOTEBOOK: SECTION II - Enhanced Video & Independent TTYs */
+
+#include "../section1_cpu/heap.h"
+
+#define VGA_ADDRESS 0xB8000
+#define NOTEBOOK_YELLOW 0x1E
+#define WIDTH 80
+#define HEIGHT 25
+#define MAX_TTYS 10
+#define VIDEO_SIZE (WIDTH * HEIGHT * 2)
+/* Ensure these declarations are at the top of vga.c */
+extern int cmos_get_hour();
+extern int cmos_get_min();
+extern int cmos_get_sec();
+/* src/section2_video/vga.c */
+int timezone_offset_seconds = 0; // The "Master" variable
+// Independent TTY structure
+typedef struct {
+    unsigned short* buffer;
+    int cursor_pos;
+    char command_buffer[80];
+    int buffer_idx;
+} tty_t;
+
+tty_t ttys[MAX_TTYS];
+int current_tty = 0;
+
+void vga_write_num_at(int pos, int num) {
+    unsigned short* vga_hardware = (unsigned short*)VGA_ADDRESS;
+    vga_hardware[pos] = (unsigned short)((num / 10) + '0') | (unsigned short)0x1F << 8;
+    vga_hardware[pos + 1] = (unsigned short)((num % 10) + '0') | (unsigned short)0x1F << 8;
+}
+
+/* src/section2_video/vga.c */
+
+void vga_draw_status_bar() {
+    unsigned short* vga_hardware = (unsigned short*)VGA_ADDRESS;
+    int base_pos = 24 * 80; // The 25th row (index 1920)
+
+    // 1. Get raw units from CMOS
+    int s = cmos_get_sec();
+    int m = cmos_get_min();
+    int h = cmos_get_hour();
+
+    // 2. Convert to total seconds of the day and apply the shell offset
+    // (Hours * 3600) + (Minutes * 60) + Seconds
+    long total_seconds = (h * 3600) + (m * 60) + s + timezone_offset_seconds;
+
+    // 3. Handle Day Rollover (Underflow and Overflow)
+    // 86400 seconds = 24 hours
+    while (total_seconds < 0) total_seconds += 86400;
+    while (total_seconds >= 86400) total_seconds -= 86400;
+
+    // 4. Extract final H:M:S from the adjusted total
+    int final_h = total_seconds / 3600;
+    int final_m = (total_seconds % 3600) / 60;
+    int final_s = total_seconds % 60;
+
+    // 5. Determine AM/PM and convert to 12-hour format
+    const char* am_pm = (final_h >= 12) ? "PM" : "AM";
+    int hour12 = final_h % 12;
+    if (hour12 == 0) hour12 = 12; 
+
+    // 6. Draw Date (MM/DD)
+    vga_write_num_at(base_pos, cmos_get_month());
+    vga_hardware[base_pos + 2] = (unsigned short)'/' | (unsigned short)0x1F << 8;
+    vga_write_num_at(base_pos + 3, cmos_get_day());
+
+    // 7. Draw Time (HH:MM:SS AM/PM)
+    vga_hardware[base_pos + 6] = (unsigned short)'|' | (unsigned short)0x1F << 8;
+    vga_write_num_at(base_pos + 8, hour12);
+    vga_hardware[base_pos + 10] = (unsigned short)':' | (unsigned short)0x1F << 8;
+    vga_write_num_at(base_pos + 11, final_m);
+    vga_hardware[base_pos + 13] = (unsigned short)':' | (unsigned short)0x1F << 8;
+    vga_write_num_at(base_pos + 14, final_s);
+    
+    // Draw AM/PM text
+    vga_hardware[base_pos + 17] = (unsigned short)am_pm[0] | (unsigned short)0x1F << 8;
+    vga_hardware[base_pos + 18] = (unsigned short)am_pm[1] | (unsigned short)0x1F << 8;
+
+    // 8. Draw TTY ID (Far Right)
+    int tty_pos = base_pos + 70;
+    vga_hardware[tty_pos] = (unsigned short)'T' | (unsigned short)0x1F << 8;
+    vga_hardware[tty_pos+1] = (unsigned short)'T' | (unsigned short)0x1F << 8;
+    vga_hardware[tty_pos+2] = (unsigned short)'Y' | (unsigned short)0x1F << 8;
+    vga_hardware[tty_pos+3] = (unsigned short)':' | (unsigned short)0x1F << 8;
+    vga_hardware[tty_pos+5] = (unsigned short)(current_tty + '0') | (unsigned short)0x1E << 8;
+}
+
+
+/* Update the physical hardware cursor */
+void update_hardware_cursor(int pos) {
+    __asm__ volatile ("outb %0, %1" : : "a"((unsigned char)0x0F), "Nd"((unsigned short)0x3D4));
+    __asm__ volatile ("outb %0, %1" : : "a"((unsigned char)(pos & 0xFF)), "Nd"((unsigned short)0x3D5));
+    __asm__ volatile ("outb %0, %1" : : "a"((unsigned char)0x0E), "Nd"((unsigned short)0x3D4));
+    __asm__ volatile ("outb %0, %1" : : "a"((unsigned char)((pos >> 8) & 0xFF)), "Nd"((unsigned short)0x3D5));
+}
+
+/* Initialize all TTY buffers in the heap */
+void vga_init_ttys() {
+    for(int i = 0; i < MAX_TTYS; i++) {
+        ttys[i].buffer = (unsigned short*)kmalloc(VIDEO_SIZE);
+        ttys[i].cursor_pos = 0;
+        ttys[i].buffer_idx = 0;
+        
+        // Clear each virtual screen with AliOS Yellow/Blue
+        for (int j = 0; j < WIDTH * HEIGHT; j++) {
+            ttys[i].buffer[j] = (unsigned short)' ' | (unsigned short)NOTEBOOK_YELLOW << 8;
+        }
+    }
+}
+
+/* Swap the active TTY struct and refresh hardware memory */
+void switch_tty(int new_tty) {
+    if (new_tty == current_tty) return;
+    unsigned short* vga_hardware = (unsigned short*)VGA_ADDRESS;
+    
+    // 1. Save current hardware state to the current TTY's buffer
+    for(int i = 0; i < WIDTH * HEIGHT; i++) {
+        ttys[current_tty].buffer[i] = vga_hardware[i];
+    }
+    
+    // 2. Switch active index
+    current_tty = new_tty;
+    
+    // 3. Load the new TTY's buffer into hardware memory
+    for(int i = 0; i < WIDTH * HEIGHT; i++) {
+        vga_hardware[i] = ttys[current_tty].buffer[i];
+    }
+    vga_draw_status_bar();
+    update_hardware_cursor(ttys[current_tty].cursor_pos);
+}
+
+void vga_clear() {
+    unsigned short* vga_ptr = (unsigned short*)VGA_ADDRESS;
+    // Clear both the hardware and the current active buffer
+    for (int i = 0; i < WIDTH * HEIGHT; i++) {
+        unsigned short blank = (unsigned short)' ' | (unsigned short)NOTEBOOK_YELLOW << 8;
+        vga_ptr[i] = blank;
+        ttys[current_tty].buffer[i] = blank;
+    }
+    ttys[current_tty].cursor_pos = 0;
+    vga_draw_status_bar();
+    update_hardware_cursor(0);
+}
+
+void vga_scroll() {
+    tty_t* active = &ttys[current_tty];
+    unsigned short* vga_hardware = (unsigned short*)VGA_ADDRESS;
+
+    // Shift only Rows 0-22 up into Rows 1-23.
+    // Loop limit: (HEIGHT - 2) * WIDTH = 1840.
+    for (int i = 0; i < (HEIGHT - 2) * WIDTH; i++) {
+        active->buffer[i] = active->buffer[i + WIDTH];
+    }
+
+    // Clear only Row 23 (the typing line).
+    // Range: 1840 to 1919.
+    for (int i = (HEIGHT - 2) * WIDTH; i < (HEIGHT - 1) * WIDTH; i++) {
+        active->buffer[i] = (unsigned short)' ' | (unsigned short)NOTEBOOK_YELLOW << 8;
+    }
+
+    // Sync ONLY the workspace to hardware.
+    for (int i = 0; i < WIDTH * (HEIGHT - 1); i++) {
+        vga_hardware[i] = active->buffer[i];
+    }
+
+    // Reset cursor to the start of the newly cleared Row 23.
+    active->cursor_pos = (HEIGHT - 2) * WIDTH;
+
+    // Refresh the status bar on the protected last row.
+    vga_draw_status_bar();
+}
+
+void vga_putchar(char c) {
+    tty_t* active = &ttys[current_tty];
+    unsigned short* vga_hardware = (unsigned short*)VGA_ADDRESS;
+
+    // Boundary check: Row 24 starts at index 1920 (24 * 80)
+    // If the next character would land on Row 24, we scroll first.
+    if (active->cursor_pos >= WIDTH * (HEIGHT - 1)) {
+        vga_scroll();
+    }
+
+    if (c == '\n') {
+        active->cursor_pos += WIDTH - (active->cursor_pos % WIDTH);
+    } else if (c == '\b') {
+        if (active->cursor_pos > 0) {
+            active->cursor_pos--;
+            unsigned short blank = (unsigned short)' ' | (unsigned short)NOTEBOOK_YELLOW << 8;
+            vga_hardware[active->cursor_pos] = blank;
+            active->buffer[active->cursor_pos] = blank;
+        }
+    } else {
+        unsigned short glyph = (unsigned short)c | (unsigned short)NOTEBOOK_YELLOW << 8;
+        vga_hardware[active->cursor_pos] = glyph;
+        active->buffer[active->cursor_pos] = glyph;
+        active->cursor_pos++;
+    }
+
+    // Double check after writing to ensure we didn't just fill the last slot of Row 23
+    if (active->cursor_pos >= WIDTH * (HEIGHT - 1)) {
+        vga_scroll();
+    }
+
+    update_hardware_cursor(active->cursor_pos);
+}
+
+void vga_write(const char* data) {
+    for (int i = 0; data[i] != '\0'; i++) {
+        vga_putchar(data[i]);
+    }
+}
+
+--- FILE: ./src/section3_io/kbd.c ---
+/* src/section3_io/kbd.c */
+/* LINKED TO NOTEBOOK: SECTION III - Keyboard & Scancodes with TTY Support */
+
+// Helper to read from an I/O port
+static inline unsigned char inb(unsigned short port) {
+    unsigned char val;
+    __asm__ volatile ("inb %1, %0" : "=a"(val) : "Nd"(port));
+    return val;
+}
+
+// External function from vga.c to handle the screen swap
+extern void switch_tty(int n);
+
+// State trackers for modifier keys
+static int ctrl_held = 0;
+static int alt_held = 0;
+static int shift_held = 0; // NEW: Tracks Shift state
+
+// Standard US-QWERTY Map (Lowercase/Numbers)
+char kbd_map[128] = {
+    0,  27, '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '=', '\b',
+    '\t', 'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', '[', ']', '\n',
+    0, 'a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', ';', '\'', '`', 0, '\\',
+    'z', 'x', 'c', 'v', 'b', 'n', 'm', ',', '.', '/', 0, '*', 0, ' '
+};
+
+// Shifted US-QWERTY Map (Uppercase/Symbols)
+char kbd_map_shift[128] = {
+    0,  27, '!', '@', '#', '$', '%', '^', '&', '*', '(', ')', '_', '+', '\b',
+    '\t', 'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', '{', '}', '\n',
+    0, 'A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', ':', '\"', '~', 0, '|',
+    'Z', 'X', 'C', 'V', 'B', 'N', 'M', '<', '>', '?', 0, '*', 0, ' '
+};
+
+
+
+/* Pass the scancode we already read in kernel_main */
+char kbd_get_char(unsigned char scancode) {
+    // 1. Detect Modifier Key Presses (Make codes)
+    if (scancode == 0x1D) { ctrl_held = 1; return 0; }
+    if (scancode == 0x38) { alt_held = 1; return 0; }
+    // 0x2A = Left Shift, 0x36 = Right Shift
+    if (scancode == 0x2A || scancode == 0x36) { shift_held = 1; return 0; }
+
+    // 2. Detect Modifier Key Releases (Break codes = Make + 0x80)
+    if (scancode == 0x9D) { ctrl_held = 0; return 0; }
+    if (scancode == 0xB8) { alt_held = 0; return 0; }
+    // 0xAA = L-Shift Release, 0xB6 = R-Shift Release
+    if (scancode == 0xAA || scancode == 0xB6) { shift_held = 0; return 0; }
+
+    // 3. Handle TTY Switching (Ctrl + Alt + F1-F10)
+    if (ctrl_held && alt_held) {
+        if (scancode >= 0x3B && scancode <= 0x44) {
+            int target_tty = scancode - 0x3B;
+            switch_tty(target_tty);
+            return 0; 
+        }
+    }
+
+    // 4. Standard mapping for printable characters
+    // Only return characters on "Press" events (scancodes < 128)
+    if (scancode < 128) {
+        if (shift_held) {
+            return kbd_map_shift[scancode]; // Return symbols/uppercase
+        } else {
+            return kbd_map[scancode];       // Return lowercase/numbers
+        }
+    }
+    
+    return 0;
+}
+--- FILE: ./src/section3_io/cmos.c ---
+/* src/section3_io/cmos.c */
+/* LINKED TO NOTEBOOK: SECTION IV - CMOS & Real-Time Clock */
+
+#include "../section1_cpu/io.h"
+
+#define CMOS_ADDRESS 0x70
+#define CMOS_DATA    0x71
+
+unsigned char read_cmos(unsigned char reg) {
+    outb(CMOS_ADDRESS, reg);
+    return inb(CMOS_DATA);
+}
+
+// CMOS values are often in BCD (Binary Coded Decimal)
+// This converts them to standard integers
+static unsigned char bcd_to_bin(unsigned char bcd) {
+    return (bcd & 0x0F) + ((bcd / 16) * 10);
+}
+
+int cmos_get_hour()   { return bcd_to_bin(read_cmos(0x04)); }
+int cmos_get_min()    { return bcd_to_bin(read_cmos(0x02)); }
+int cmos_get_sec()    { return bcd_to_bin(read_cmos(0x00)); }
+int cmos_get_day()    { return bcd_to_bin(read_cmos(0x07)); }
+int cmos_get_month()  { return bcd_to_bin(read_cmos(0x08)); }
+
+unsigned long long get_total_ram_bytes() {
+    unsigned char low, high;
+    low = read_cmos(0x17);
+    high = read_cmos(0x18);
+    unsigned long long extended_kb = (high << 8) | low;
+    return (1024 + extended_kb) * 1024;
+}
+/* Add these to your cmos.c */
+
+void write_cmos(unsigned char reg, unsigned char val) {
+    outb(0x70, reg);
+    outb(0x71, val);
+}
+
+// Store failed attempts in CMOS register 0x34
+void set_failed_attempts(unsigned char count) {
+    write_cmos(0x34, count);
+}
+
+unsigned char get_failed_attempts() {
+    return read_cmos(0x34);
+}
+--- FILE: ./src/section4_shell/shell.h ---
+#ifndef SHELL_H
+#define SHELL_H
+
+/* Function pointer for command execution */
+typedef void (*command_func)(char* args);
+
+/* Dynamic Command Node */
+typedef struct command_node {
+    char name[32];
+    char description[64];
+    command_func function;
+    struct command_node* next;
+} command_node_t;
+
+/* Public API */
+void shell_init();
+void shell_register_command(const char* name, const char* desc, command_func func);
+void shell_dispatch(char* buffer);
+void shell_tab_complete(char* buffer, int* len);
+
+/* External dependencies */
+extern void vga_write(const char* data);
+extern void vga_clear();
+extern void vga_putchar(char c);
+
+#endif
+
+--- FILE: ./src/section4_shell/shell.c ---
+#include "shell.h"
+#include "../section1_cpu/heap.h"
+#include "../section1_cpu/io.h"
+
+static command_node_t* command_list = 0;
+extern unsigned int get_heap_usage();
+extern unsigned int get_uptime_seconds();
+extern unsigned int get_total_ram_bytes();
+extern void lock_system_hardened();
+extern int timezone_offset_seconds;
+extern void vga_draw_status_bar();
+/* --- String Helpers --- */
+int strcmp(const char* s1, const char* s2) {
+    while (*s1 && (*s1 == *s2)) { s1++; s2++; }
+    return *(unsigned char*)s1 - *(unsigned char*)s2;
+}
+
+int strncmp(const char* s1, const char* s2, int n) {
+    while (n--) {
+        if (*s1 != *s2++) return *(unsigned char*)s1 - *(unsigned char*)--s2;
+        if (*s1++ == 0) break;
+    }
+    return 0;
+}
+
+int strlen(const char* s) {
+    int len = 0;
+    while (s[len]) len++;
+    return len;
+}
+
+void strcpy(char* dest, const char* src) {
+    int i = 0;
+    while (src[i] != '\0') {
+        dest[i] = src[i];
+        i++;
+    }
+    dest[i] = '\0';
+}
+/* Helper: Reverse a string in place */
+void reverse(char* str, int length) {
+    int start = 0;
+    int end = length - 1;
+    while (start < end) {
+        char temp = str[start];
+        str[start] = str[end];
+        str[end] = temp;
+        start++;
+        end--;
+    }
+}
+
+/* itoa: Convert integer to string (Base 10 only) */
+char* itoa(int value, char* str) {
+    int i = 0;
+    int isNegative = 0;
+
+    /* Handle 0 explicitly */
+    if (value == 0) {
+        str[i++] = '0';
+        str[i] = '\0';
+        return str;
+    }
+
+    /* Handle negative numbers */
+    if (value < 0) {
+        isNegative = 1;
+        value = -value;
+    }
+
+    /* Process individual digits in Base 10 */
+    while (value != 0) {
+        int rem = value % 10;
+        str[i++] = rem + '0';
+        value = value / 10;
+    }
+
+    if (isNegative) {
+        str[i++] = '-';
+    }
+
+    str[i] = '\0';
+    reverse(str, i);
+
+    return str;
+}
+// Simple atoi implementation to convert string to integer
+int atoi_custom(char* str) {
+    int res = 0;
+    int sign = 1;
+    int i = 0;
+
+    if (str[0] == '-') {
+        sign = -1;
+        i++;
+    } else if (str[0] == '+') {
+        i++; // Just skip the plus sign and stay positive
+    }
+
+    for (; str[i] != '\0'; ++i) {
+        if (str[i] < '0' || str[i] > '9') break;
+        res = res * 10 + str[i] - '0';
+    }
+    return sign * res;
+}
+
+/* --- Built-in Commands --- */
+void cmd_help(char* args) {
+    vga_write("\nAliOS 4 Commands:");
+    command_node_t* curr = command_list;
+    while (curr) {
+        vga_write("\n  ");
+        vga_write(curr->name);
+        vga_write(" - ");
+        vga_write(curr->description);
+        curr = curr->next;
+    }
+}
+
+void cmd_cls(char* args) {
+    vga_clear();
+}
+
+void cmd_echo(char* args) {
+    if (args) {
+//        vga_write("\n");
+        vga_write(args);
+    }
+}
+
+void cmd_neofetch(char* args) {
+    unsigned int a, b, c, d;
+    char vendor[13];
+    // Get CPU Vendor String (e.g., "GenuineIntel" or "AuthenticAMD")
+    cpuid(0, &a, (unsigned int*)&vendor[0], (unsigned int*)&vendor[8], (unsigned int*)&vendor[4]);
+    vendor[12] = '\0';
+
+    char mem_str[16];
+    itoa(get_heap_usage(), mem_str); // Get dynamic memory stats
+
+    vga_write("   ______      AliOS 4.0\n");
+    vga_write("  / ____/      ----------\n");
+    vga_write(" / /  __       CPU: "); vga_write(vendor); vga_write("\n");
+    vga_write("/ /__/ /       MEM: "); vga_write(mem_str); vga_write(" bytes used\n");
+    vga_write("\\____ /        HEAP: 0x200000\n");
+    vga_write("               MODE: 64-bit Long Mode\n");
+}
+
+// Add this to the top of shell.c with your other commands
+void cmd_uptime(char* args) {
+    char sec_str[16];
+    itoa(get_uptime_seconds(), sec_str); // Use the real timer data
+    
+    vga_write("uptime: ");
+    vga_write(sec_str);
+    vga_write(" seconds.\n");
+}
+void cmd_free(char* args) {
+    unsigned int total = (unsigned int)get_total_ram_bytes();
+    unsigned int used = get_heap_usage();
+    unsigned int free = total - used;
+
+    char t_str[16], u_str[16], f_str[16];
+    
+    // No more dividing by 1024!
+    itoa(total, t_str);
+    itoa(used, u_str);
+    itoa(free, f_str);
+
+    vga_write("\nMemory Usage (Bytes):");
+    vga_write("\n  Total: "); vga_write(t_str);
+    vga_write("\n  Used:  "); vga_write(u_str);
+    vga_write("\n  Free:  "); vga_write(f_str);
+    vga_write("\n");
+}
+ 
+void shell_cmd_timezone(char* arg) {
+    if (arg == 0 || arg[0] == '\0') {
+        vga_write("Usage: timezone [hours] [seconds]\n");
+        return;
+    }
+
+    int h = 0, s = 0;
+    char* second_part = 0;
+
+    // Split "hours" and "seconds"
+    for (int i = 0; arg[i]; i++) {
+        if (arg[i] == ' ') {
+            arg[i] = '\0';
+            second_part = &arg[i+1];
+            break;
+        }
+    }
+
+    h = atoi_custom(arg); 
+    if (second_part) s = atoi_custom(second_part);
+
+    // Logic: If hours are negative, seconds should usually be subtracted too
+    // Example: GMT-5:30 means -5 hours AND -30 minutes
+    int total;
+    if (h < 0) {
+        total = (h * 3600) - s; 
+    } else {
+        total = (h * 3600) + s;
+    }
+
+    timezone_offset_seconds = total;
+
+    vga_write("Timezone offset set to ");
+    char buf[16];
+    vga_write(itoa(timezone_offset_seconds, buf));
+    vga_write(" seconds.\n");
+
+    // CRITICAL: Refresh the screen so you see the change!
+    vga_draw_status_bar(); 
+}
+
+void shell_lock() {
+    lock_system_hardened();
+}
+void cmd_test(char* args) {
+    vga_write("Calibrating timer (5s wait)...\n");
+    for(int i = 5; i > 0; i--) {
+        char buf[4];
+        itoa(i, buf);
+        vga_write(buf);
+        vga_write("... ");
+        sleep(1);
+    }
+    vga_write("\nTest complete.\n");
+}
+void cmd_beep(){
+    vga_write("Beeping...");
+    beep();
+}
+/* --- Shell Logic --- */
+void shell_register_command(const char* name, const char* desc, command_func func) {
+    command_node_t* new_node = (command_node_t*)kmalloc(sizeof(command_node_t));
+    
+    int i = 0;
+    while(name[i] && i < 31) { new_node->name[i] = name[i]; i++; }
+    new_node->name[i] = '\0';
+
+    i = 0;
+    while(desc[i] && i < 63) { new_node->description[i] = desc[i]; i++; }
+    new_node->description[i] = '\0';
+
+    new_node->function = func;
+    new_node->next = command_list;
+    command_list = new_node;
+}
+
+void shell_init() {
+    shell_register_command("help", "List all available commands", cmd_help);
+    shell_register_command("cls",  "Clear the notebook screen",   cmd_cls);
+    shell_register_command("echo", "Print text to the screen",    cmd_echo);
+    shell_register_command("neofetch", "Display dynamic system info", cmd_neofetch);
+    shell_register_command("uptime", "Show how long AliOS has been running", cmd_uptime);
+    shell_register_command("free", "Check dynamic RAM usage", cmd_free);
+    shell_register_command("timezone", "Adjust the status bar clock offset", shell_cmd_timezone);
+    shell_register_command("lock", "Locks the system", shell_lock);
+    shell_register_command("test",     "Verify timer calibration",    cmd_test);
+    shell_register_command("beep", "Play a system alert sound", cmd_beep);
+}
+
+/* src/section4_shell/shell.c */
+
+void shell_dispatch(char* buffer) {
+    // If the user just hits enter, just print a new prompt on a new line
+    if (strlen(buffer) == 0) {
+        vga_write("\n> ");
+        return;
+    }
+
+    char* args = 0;
+    for (int i = 0; buffer[i]; i++) {
+        if (buffer[i] == ' ') {
+            buffer[i] = '\0';
+            args = &buffer[i+1];
+            break;
+        }
+    }
+
+    command_node_t* curr = command_list;
+    while (curr) {
+        if (strcmp(curr->name, buffer) == 0) {
+            vga_write("\n"); // Move to new line before command output
+            curr->function(args);
+            vga_write("\n> "); // Move to new line for the next prompt
+            return;
+        }
+        curr = curr->next;
+    }
+
+    // If command not found
+    vga_write("\nAliOS: '");
+    vga_write(buffer);
+    vga_write("' not found. Type 'help'.\n> ");
+}
+void shell_tab_complete(char* buffer, int* len) {
+    command_node_t* curr = command_list;
+    while (curr) {
+        if (strncmp(curr->name, buffer, *len) == 0) {
+            char* rest = curr->name + *len;
+            vga_write(rest);
+            while (*rest) buffer[(*len)++] = *rest++;
+            buffer[*len] = '\0';
+            return;
+        }
+        curr = curr->next;
+    }
+}
+
+--- FILE: ./src/kernel.c ---
+/* src/kernel.c */
+#include "section1_cpu/io.h"
+#include "section1_cpu/heap.h"
+#include "section4_shell/shell.h"
+
+typedef struct {
+    unsigned short* buffer;
+    int cursor_pos;
+    char command_buffer[80];
+    int buffer_idx;
+} tty_t;
+
+extern char kbd_get_char(unsigned char scancode);
+extern void timer_init();
+extern void timer_wait_tick();
+extern void vga_init_ttys();
+extern void vga_draw_status_bar(); 
+extern void vga_clear();
+extern void vga_write(const char* data);
+extern void vga_putchar(char c);
+extern char* itoa(int value, char* str);
+extern unsigned char get_failed_attempts();
+extern void set_failed_attempts(unsigned char count);
+
+extern tty_t ttys[];        
+extern int current_tty;     
+
+int strcmp_custom(char* s1, char* s2) {
+    int i = 0;
+    while (s1[i] != '\0' || s2[i] != '\0') {
+        if (s1[i] != s2[i]) return 0;
+        i++;
+    }
+    return 1;
+}
+
+void lock_system_hardened() {
+    char* secret = "Ali123";
+    char input[32];
+    int idx = 0;
+    int strikes = get_failed_attempts(); 
+    int clock_ticks = 0;
+
+    vga_clear();
+
+    while (1) {
+        if (strikes >= 3) {
+            vga_clear();
+            vga_write("\n\n          #######################################\n");
+            vga_write("          #     !!! PERMANENT LOCKOUT !!!       #\n");
+            vga_write("          #######################################\n\n");
+            vga_write("          SECURITY BREACH DETECTED.\n");
+            
+            // 1. Play the alarm FIRST
+            for(int j = 0; j < 3; j++) { // Triple beep
+                beep();
+                for(int i = 0; i < 10; i++) timer_wait_tick(); 
+            }
+
+            vga_write("          SYSTEM IS NOW DISABLED.\n\n");
+            vga_write("          Please perform a HARDWARE RESET to retry.\n");
+
+            // 2. NOW freeze the CPU
+            while (1) { __asm__ volatile ("hlt"); }
+        }
+
+        vga_write("          Enter Password: ");
+
+        while (1) {
+            // SYNC: Keep the clock moving while user types password
+            timer_wait_tick();
+            clock_ticks++;
+            if (clock_ticks >= 100) {
+                vga_draw_status_bar();
+                clock_ticks = 0;
+            }
+
+            if (inb(0x64) & 0x01) {
+                unsigned char scancode = inb(0x60);
+                char c = kbd_get_char(scancode);
+                if (c == 0) continue; 
+
+                if (c == '\n') {
+                    input[idx] = '\0';
+                    if (strcmp_custom(input, secret)) {
+                        set_failed_attempts(0); 
+                        vga_clear();
+                        return; 
+                    } else {
+                        strikes++;
+                        set_failed_attempts(strikes); 
+                        vga_write("\n          [ ACCESS DENIED ] - Strike ");
+                        char s_buf[4];
+                        vga_write(itoa(strikes, s_buf));
+                        vga_write("/3\n");
+                        idx = 0;
+                        break; 
+                    }
+                } 
+                else if (c == '\b') {
+                    if (idx > 0) { idx--; vga_putchar('\b'); }
+                } 
+                else if (c >= ' ' && idx < 31) {
+                    input[idx++] = c;
+                    vga_putchar('*'); 
+                }
+            }
+        }
+    }
+}
+
+void kernel_main() {
+    vga_clear();
+    shell_init(); 
+    timer_init();
+    vga_init_ttys();
+
+    while (inb(0x64) & 0x01) { inb(0x60); }
+
+    lock_system_hardened();
+
+    vga_write("AliOS 4 Notebook - Multi-TTY Mode\n");
+    vga_write("System Ready. Use Ctrl+Alt+F1-F10 to switch.\n");
+    vga_write("> ");
+
+    int clock_ticks = 0;
+
+    while(1) {
+        // FIXED: This ensures 1 loop = 1 hardware tick (10ms)
+        timer_wait_tick(); 
+
+        clock_ticks++;
+        if (clock_ticks >= 100) { 
+            vga_draw_status_bar();
+            clock_ticks = 0;
+        }
+
+        if (inb(0x64) & 0x01) {
+            unsigned char scancode = inb(0x60);
+            tty_t* active = &ttys[current_tty];
+
+            if (scancode == 0x0F) {
+                shell_tab_complete(active->command_buffer, &active->buffer_idx);
+            } 
+            else {
+                char c = kbd_get_char(scancode);
+                if (c == 0) continue; 
+
+                if (c == '\n') {
+                    active->command_buffer[active->buffer_idx] = '\0';
+                    shell_dispatch(active->command_buffer);
+                    active->buffer_idx = 0;
+                    vga_draw_status_bar();
+                } 
+                else if (c == '\b') {
+                    if (active->buffer_idx > 0) {
+                        active->buffer_idx--;
+                        vga_putchar('\b');
+                    }
+                } 
+                else if (c >= ' ' && active->buffer_idx < 79) {
+                    active->command_buffer[active->buffer_idx++] = c;
+                    vga_putchar(c);
+                }
+            }
+        }
+    }
+}
