@@ -1,7 +1,6 @@
 /* src/section1_cpu/speaker.c */
 #include "io.h"
-
-
+extern unsigned long long timer_ticks;
 
 // Keep this as your core hardware logic
 void play_sound(unsigned int nFrequence) {
