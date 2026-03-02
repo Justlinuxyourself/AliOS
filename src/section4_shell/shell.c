@@ -262,6 +262,7 @@ void twins() {
     vga_write("ISHI\n");
     vga_write("ZAZA\n");
     vga_write("ALDANA THE BEST DJ IN MY EYES\n");
+    vga_write("VANILLA\n");
 }
 
 /* --- Shell Logic --- */
