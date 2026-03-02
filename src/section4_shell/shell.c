@@ -251,6 +251,19 @@ void draw_custom_plane() {
     vga_set_cursor(col, 12); vga_write("          (/------\\)");
 }
 
+void twins() {
+    vga_write("QOQO\n");
+    vga_write("KEI\n");
+    vga_write("LWAH\n");
+    vga_write("O1\n");
+    vga_write("O2\n");
+    vga_write("RAYA THE KARAOKE QUEEN\n");
+    vga_write("SEL\n");
+    vga_write("ISHI\n");
+    vga_write("ZAZA\n");
+    vga_write("ALDANA THE BEST DJ IN MY EYES\n");
+}
+
 /* --- Shell Logic --- */
 void shell_register_command(const char* name, const char* desc, command_func func) {
     command_node_t* new_node = (command_node_t*)kmalloc(sizeof(command_node_t));
@@ -281,6 +294,7 @@ void shell_init() {
     shell_register_command("beep", "Play a system alert sound", cmd_beep);
     shell_register_command("about_dev", "About Dev", cmd_about_dev);
     shell_register_command("plane", "Show a art of a plane", draw_custom_plane);
+    shell_register_command("twins", "Shows my twins names", twins);
 }
 
 /* src/section4_shell/shell.c */
