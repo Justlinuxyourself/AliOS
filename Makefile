@@ -1,56 +1,57 @@
 # AliOS 4 Makefile
 # LINKED TO NOTEBOOK: Build System Configuration
 
-# 1. Add speaker.o to the OBJ list
+# --- Configuration ---
 OBJ = boot.o kernel.o vga.o kbd.o shell.o heap.o cmos.o timer.o speaker.o
-
-# Output binary and ISO names
 BIN = alios4.bin
 ISO = alios4.iso
 
+# Compiler Flags (DRY - Don't Repeat Yourself)
+CFLAGS = -m64 -c -ffreestanding -fno-stack-protector -Iinclude
+
+# --- Primary Targets ---
+
 all: $(ISO)
 
-# Embed hidden signature
-$(BIN): FORCE
-	echo -n "Made_by_justlinuxyourself" | xxd -p | tr -d '\n' >> $(BIN)
-
-
-# Link the kernel
+# Link the kernel and then embed the signature
 $(BIN): $(OBJ)
 	ld -n -o $(BIN) -T linker.ld $(OBJ)
+	# Embedding signature safely at the end of the binary
+	echo -n "Made_by_justlinuxyourself" >> $(BIN)
 
-# Compile Assembly
+# --- Assembly Rules ---
+
 boot.o: src/section1_cpu/boot.asm
 	nasm -f elf64 src/section1_cpu/boot.asm -o boot.o
 
 # --- C Compilation Rules ---
 
-# 2. Add the specific rule for speaker.o
 speaker.o: src/section1_cpu/speaker.c
-	gcc -m64 -c src/section1_cpu/speaker.c -o speaker.o -ffreestanding -fno-stack-protector
+	gcc $(CFLAGS) src/section1_cpu/speaker.c -o speaker.o
 
 timer.o: src/section1_cpu/timer.c
-	gcc -m64 -c src/section1_cpu/timer.c -o timer.o -ffreestanding -fno-stack-protector
+	gcc $(CFLAGS) src/section1_cpu/timer.c -o timer.o
 
 kernel.o: src/kernel.c
-	gcc -m64 -c src/kernel.c -o kernel.o -ffreestanding -fno-stack-protector
+	gcc $(CFLAGS) src/kernel.c -o kernel.o
 
 vga.o: src/section2_video/vga.c
-	gcc -m64 -c src/section2_video/vga.c -o vga.o -ffreestanding -fno-stack-protector
+	gcc $(CFLAGS) src/section2_video/vga.c -o vga.o
 
 kbd.o: src/section3_io/kbd.c
-	gcc -m64 -c src/section3_io/kbd.c -o kbd.o -ffreestanding -fno-stack-protector
+	gcc $(CFLAGS) src/section3_io/kbd.c -o kbd.o
 
 shell.o: src/section4_shell/shell.c
-	gcc -m64 -c src/section4_shell/shell.c -o shell.o -ffreestanding -fno-stack-protector
+	gcc $(CFLAGS) src/section4_shell/shell.c -o shell.o
 
 heap.o: src/section1_cpu/heap.c
-	gcc -m64 -c src/section1_cpu/heap.c -o heap.o -ffreestanding -fno-stack-protector
+	gcc $(CFLAGS) src/section1_cpu/heap.c -o heap.o
 
 cmos.o: src/section3_io/cmos.c
-	gcc -m64 -c src/section3_io/cmos.c -o cmos.o -ffreestanding -fno-stack-protector
+	gcc $(CFLAGS) src/section3_io/cmos.c -o cmos.o
 
-# Create ISO
+# --- ISO Creation ---
+
 $(ISO): $(BIN)
 	mkdir -p isodir/boot/grub
 	cp $(BIN) isodir/boot/
@@ -59,3 +60,5 @@ $(ISO): $(BIN)
 
 clean:
 	rm -rf *.o $(BIN) $(ISO) isodir
+
+.PHONY: all clean
