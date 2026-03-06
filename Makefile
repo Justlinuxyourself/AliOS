@@ -14,7 +14,6 @@ all: $(ISO)
 $(BIN): FORCE
 	echo -n "Made_by_justlinuxyourself" | xxd -p | tr -d '\n' >> $(BIN)
 
-FORCE:
 
 # Link the kernel
 $(BIN): $(OBJ)
