@@ -53,3 +53,15 @@ AliOS 4 is a custom-built, 64-bit "Notebook" style operating system. It features
 │   ├── section3_io        # CMOS & Keyboard Drivers
 │   └── section4_shell     # Shell Logic & Command Library
 └── linker.ld              # Kernel Memory Layout
+
+## 🔒 Usage Policy
+You are permitted to:
+✅ Use this OS for personal purposes  
+✅ Modify code for learning or improvement  
+
+You are **NOT** allowed to:
+❌ Rename or rebrand AliOS as your own project  
+❌ Claim authorship of core components  
+❌ Remove original copyright notices or credits  
+
+⚠️ Violators will have their repos reported + exposed publicly across platforms. Git history does not lie.
