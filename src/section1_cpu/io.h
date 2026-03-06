@@ -1,4 +1,7 @@
-/* src/section1_cpu/io.h */
+/* 
+Copyright (c) 2026 Ali  
+All rights reserved.
+*/
 #ifndef IO_H
 #define IO_H
 #define PIT_COMMAND 0x43
