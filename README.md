@@ -42,6 +42,7 @@ AliOS 4 is a custom-built, 64-bit "Notebook" style operating system. It features
 | `lock` | Manually triggers the hardened lock screen. |
 | `test` | Verifies timer calibration with a 5s countdown. |
 | `beep` | Plays a system alert sound through the PC Speaker. |
+| `twins` | Shows my twins |
 
 ## 📁 Directory Structure
 ```text
