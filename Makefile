@@ -10,6 +10,12 @@ ISO = alios4.iso
 
 all: $(ISO)
 
+# Embed hidden signature
+$(BIN): FORCE
+	echo -n "Made_by_justlinuxyourself" | xxd -p | tr -d '\n' >> $(BIN)
+
+FORCE:
+
 # Link the kernel
 $(BIN): $(OBJ)
 	ld -n -o $(BIN) -T linker.ld $(OBJ)
