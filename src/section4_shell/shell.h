@@ -1,3 +1,7 @@
+/* 
+Copyright (c) 2026 Ali  
+All rights reserved.
+*/
 #ifndef SHELL_H
 #define SHELL_H
 
