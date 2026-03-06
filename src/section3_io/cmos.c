@@ -1,6 +1,9 @@
 /* src/section3_io/cmos.c */
 /* LINKED TO NOTEBOOK: SECTION IV - CMOS & Real-Time Clock */
-
+/* 
+Copyright (c) 2026 Ali  
+All rights reserved.
+*/
 #include "../section1_cpu/io.h"
 
 #define CMOS_ADDRESS 0x70
