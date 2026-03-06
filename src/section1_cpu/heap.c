@@ -1,3 +1,7 @@
+/*
+Copyright (c) 2026 Ali  
+All rights reserved.
+*/
 /* LINKED TO NOTEBOOK: SECTION VI - Memory Management */
 #include "heap.h"
 
