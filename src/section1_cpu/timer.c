@@ -1,4 +1,7 @@
-/* src/section1_cpu/timer.c */
+/* 
+Copyright (c) 2026 Ali  
+All rights reserved.
+*/
 #include "io.h"
 
 unsigned long long timer_ticks = 0;
