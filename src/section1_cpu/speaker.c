@@ -1,4 +1,7 @@
-/* src/section1_cpu/speaker.c */
+/* 
+Copyright (c) 2026 Ali  
+All rights reserved.
+*/
 #include "io.h"
 extern unsigned long long timer_ticks;
 
@@ -41,7 +44,7 @@ void beep_ex(int duration_ms, int freq) {
 void beep() {
     beep_ex(40, 1000); 
 }
-/* src/section1_cpu/speaker.c */
+
 
 void startup_melody() {
     // Note 1: A (440Hz)
