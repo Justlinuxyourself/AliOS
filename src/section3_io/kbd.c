@@ -1,6 +1,9 @@
 /* src/section3_io/kbd.c */
 /* LINKED TO NOTEBOOK: SECTION III - Keyboard & Scancodes with TTY Support */
-
+/* 
+Copyright (c) 2026 Ali  
+All rights reserved.
+*/
 // Helper to read from an I/O port
 static inline unsigned char inb(unsigned short port) {
     unsigned char val;
