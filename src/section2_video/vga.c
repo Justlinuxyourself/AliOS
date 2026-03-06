@@ -1,6 +1,9 @@
 /* src/section2_video/vga.c */
 /* LINKED TO NOTEBOOK: SECTION II - Enhanced Video & Independent TTYs */
-
+/* 
+Copyright (c) 2026 Ali  
+All rights reserved.
+*/
 #include "../section1_cpu/heap.h"
 
 #define VGA_ADDRESS 0xB8000
