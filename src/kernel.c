@@ -1,4 +1,7 @@
-/* src/kernel.c */
+/* src/kernel.c 
+Copyright (c) 2026 Ali  
+All rights reserved.
+*/
 #include "section1_cpu/io.h"
 #include "section1_cpu/heap.h"
 #include "section4_shell/shell.h"
