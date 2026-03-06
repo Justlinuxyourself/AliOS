@@ -1,6 +1,7 @@
 ; --- src/section1_cpu/boot.asm ---
 ; LINKED TO NOTEBOOK: SECTION I - Bootloader & Paging
-
+;Copyright (c) 2026 Ali  
+;All rights reserved.
 [bits 32]
 section .multiboot_header
 align 8
