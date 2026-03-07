@@ -26,19 +26,13 @@ void nosound() {
 
 void beep_ex(int duration_ms, int freq) {
     play_sound(freq);
-
     if (duration_ms > 0) {
-        // Calculate target based on 100Hz (10ms per tick)
-        // If it still feels too fast, use (duration_ms / 5) to compensate for your 200Hz bug
-        unsigned long long target = timer_ticks + (duration_ms / 10); 
-        
-        while (timer_ticks < target) {
-            timer_wait_tick(); // Force a poll to update ticks
-        }
+        // Use the function you just added to timer.c!
+        // This is much smoother than manual polling.
+        sleep_ms(duration_ms); 
     }
     nosound();
 }
-
 
 // Shell command beep
 void beep() {

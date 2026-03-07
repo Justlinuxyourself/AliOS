@@ -50,6 +50,14 @@ void vga_set_cursor(int x, int y) {
     update_hardware_cursor(active->cursor_pos);
 }
 
+void vga_set_attribute(unsigned char color) {
+    unsigned short* vga_mem = (unsigned short*)0xB8000;
+    for (int i = 0; i < 80 * 25; i++) {
+        // Keep the letter (the bottom 8 bits), change the color (top 8 bits)
+        vga_mem[i] = (vga_mem[i] & 0x00FF) | (color << 8);
+    }
+}
+
 void vga_draw_status_bar() {
     unsigned short* vga_hardware = (unsigned short*)VGA_ADDRESS;
     int base_pos = 24 * 80; // The 25th row (index 1920)

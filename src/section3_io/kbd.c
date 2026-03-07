@@ -50,7 +50,12 @@ char kbd_get_char(unsigned char scancode) {
     if (scancode == 0xB8) { alt_held = 0; return 0; }
     // 0xAA = L-Shift Release, 0xB6 = R-Shift Release
     if (scancode == 0xAA || scancode == 0xB6) { shift_held = 0; return 0; }
-
+    // NEW: Morse Flash Shortcut (Ctrl + Alt + A)
+if (ctrl_held && alt_held && scancode == 0x1E) {
+    trigger_ali_morse(); // This calls the flashing function
+    return 0;
+}
+ 
     // 3. Handle TTY Switching (Ctrl + Alt + F1-F10)
     if (ctrl_held && alt_held) {
         if (scancode >= 0x3B && scancode <= 0x44) {

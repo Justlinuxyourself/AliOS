@@ -54,3 +54,18 @@ void sleep(int seconds) {
         timer_wait_tick();
     }
 }
+void sleep_ms(int ms) {
+    // 200Hz logic: 1000ms / 200 ticks = 5ms per tick.
+    // So ticks = ms / 5.
+    unsigned long long ticks_to_wait = (ms * 200) / 1000;
+    
+    // Ensure we wait at least 1 tick
+    if (ticks_to_wait == 0) ticks_to_wait = 1;
+
+    unsigned long long target = timer_ticks + ticks_to_wait;
+    
+    // Wait until the timer reaches the target
+    while (timer_ticks < target) {
+        timer_wait_tick();
+    }
+}

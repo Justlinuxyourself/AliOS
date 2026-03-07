@@ -27,6 +27,8 @@ extern void vga_putchar(char c);
 extern char* itoa(int value, char* str);
 extern unsigned char get_failed_attempts();
 extern void set_failed_attempts(unsigned char count);
+extern void sleep_ms(int ms);
+extern void trigger_ali_morse(); // If you put the Morse code function in another file
 
 extern tty_t ttys[];        
 extern int current_tty;     
@@ -68,6 +70,31 @@ void emergency_siren_slide() {
         }
     }
 }
+// Helper to flash the screen and play a sound
+void morse_pulse(int ms) {
+    // 0x70 is light gray background, 0x07 is black background
+    vga_set_attribute(0x70); 
+     
+    sleep_ms(ms);
+    
+    vga_set_attribute(0x07);
+     
+    sleep_ms(100); // Tiny gap
+}
+
+void trigger_ali_morse() {
+    // A: .- (Dot, Dash)
+    morse_pulse(100); morse_pulse(300);
+    sleep_ms(300);
+
+    // L: .-.. (Dot, Dash, Dot, Dot)
+    morse_pulse(100); morse_pulse(300); morse_pulse(100); morse_pulse(100);
+    sleep_ms(300);
+
+    // I: .. (Dot, Dot)
+    morse_pulse(100); morse_pulse(100);
+}
+
 void lock_system_hardened() {
     char* secret = "Ali123";
     char input[32];
