@@ -5,7 +5,7 @@ All rights reserved.
 #include "shell.h"
 #include "../section1_cpu/heap.h"
 #include "../section1_cpu/io.h"
-
+volatile int is_sleeping = 0;
 static command_node_t* command_list = 0;
 extern unsigned int get_heap_usage();
 extern unsigned int get_uptime_seconds();
@@ -269,28 +269,29 @@ void twins() {
 }
 
 void sys_sleep() {
-    vga_clear(); // Make screen black
-    nosound();   // Stop any sirens
-    
-    // Disable the cursor so it looks like the screen is off
-    outb(0x3D4, 0x0A);
-    outb(0x3D5, 0x20);
+    is_sleeping = 1;
+    vga_clear();
+    vga_write("SYSTEM SLEEPING... Press ANY key to wake.");
 
-    vga_write("AliOS is sleeping... Press any key to wake.");
-
-    // The HLT (Halt) instruction stops the CPU until an interrupt (key press) happens
-    while(1) {
-        __asm__ volatile("hlt"); 
+    // We CANNOT use hlt if we don't have ISRs set up.
+    // Instead, we just loop and poll the keyboard.
+    while(is_sleeping) {
+        // Look at the keyboard status port (0x64)
+        // Bit 0 is set if there is data in the buffer
+        if (inb(0x64) & 1) {
+            unsigned char scan = inb(0x60);
+            if (scan < 0x80) { // Any key "Make" code
+                is_sleeping = 0;
+            }
+        }
         
-        // If we get here, an interrupt happened (like a key press)
-        // You would check the keyboard here to 'wake up'
-        break; 
+        // Give the CPU a tiny rest without fully halting
+        __asm__ volatile("pause"); 
     }
 
-    vga_set_attribute(0x07); // Restore screen
+    vga_clear();
     vga_draw_status_bar();
 }
-
 /* --- Shell Logic --- */
 void shell_register_command(const char* name, const char* desc, command_func func) {
     command_node_t* new_node = (command_node_t*)kmalloc(sizeof(command_node_t));

@@ -10,7 +10,7 @@ static inline unsigned char inb(unsigned short port) {
     __asm__ volatile ("inb %1, %0" : "=a"(val) : "Nd"(port));
     return val;
 }
-
+extern volatile int is_sleeping;
 // External function from vga.c to handle the screen swap
 extern void switch_tty(int n);
 
@@ -39,6 +39,10 @@ char kbd_map_shift[128] = {
 
 /* Pass the scancode we already read in kernel_main */
 char kbd_get_char(unsigned char scancode) {
+    if (is_sleeping && scancode < 0x80) {
+        is_sleeping = 0;
+        return 0; // Wake up event handled
+    }
     // 1. Detect Modifier Key Presses (Make codes)
     if (scancode == 0x1D) { ctrl_held = 1; return 0; }
     if (scancode == 0x38) { alt_held = 1; return 0; }
