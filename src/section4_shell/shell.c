@@ -291,6 +291,7 @@ void sys_sleep() {
 
     vga_clear();
     vga_draw_status_bar();
+    lock_system_hardened();
 }
 /* --- Shell Logic --- */
 void shell_register_command(const char* name, const char* desc, command_func func) {
