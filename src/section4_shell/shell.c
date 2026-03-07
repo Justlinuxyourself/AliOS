@@ -149,8 +149,6 @@ void cmd_neofetch(char* args) {
     vga_write("\\____ /        HEAP: 0x200000\n");
     vga_write("               MODE: 64-bit Long Mode\n");
 }
-
-// Add this to the top of shell.c with your other commands
 void cmd_uptime(char* args) {
     char sec_str[16];
     itoa(get_uptime_seconds(), sec_str); // Use the real timer data
@@ -270,6 +268,29 @@ void twins() {
     vga_write("SUSTUBE");
 }
 
+void sys_sleep() {
+    vga_clear(); // Make screen black
+    nosound();   // Stop any sirens
+    
+    // Disable the cursor so it looks like the screen is off
+    outb(0x3D4, 0x0A);
+    outb(0x3D5, 0x20);
+
+    vga_write("AliOS is sleeping... Press any key to wake.");
+
+    // The HLT (Halt) instruction stops the CPU until an interrupt (key press) happens
+    while(1) {
+        __asm__ volatile("hlt"); 
+        
+        // If we get here, an interrupt happened (like a key press)
+        // You would check the keyboard here to 'wake up'
+        break; 
+    }
+
+    vga_set_attribute(0x07); // Restore screen
+    vga_draw_status_bar();
+}
+
 /* --- Shell Logic --- */
 void shell_register_command(const char* name, const char* desc, command_func func) {
     command_node_t* new_node = (command_node_t*)kmalloc(sizeof(command_node_t));
@@ -301,6 +322,7 @@ void shell_init() {
     shell_register_command("about_dev", "About Dev", cmd_about_dev);
     shell_register_command("plane", "Show a art of a plane", draw_custom_plane);
     shell_register_command("twins", "Shows my twins names", twins);
+    shell_register_command("sleep", "Sleep", sys_sleep);
 }
 
 /* src/section4_shell/shell.c */
