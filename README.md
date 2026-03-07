@@ -44,7 +44,7 @@ AliOS 4 is a custom-built, 64-bit "Notebook" style operating system. It features
 | `beep` | Plays a system alert sound through the PC Speaker. |
 | `twins` | Shows my twins |
 | `sleep` | puts system in sleep until a key press (using hlt) |
-
+| `plane` | shows a art of a plane |
 ## 📁 Directory Structure
 ```text
 .
