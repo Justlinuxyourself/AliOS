@@ -72,3 +72,7 @@ You are **NOT** allowed to:
 ⚠️ Violators will have their repos reported + exposed publicly across platforms. Git history does not lie.
 
 ⚠️⚠️⚠️WARNING: ANY COMMIT ATFER COMMIT febcbb4db1afae1c64848464aabdc90d13645971 IS UNTESTED⚠️⚠️⚠️
+## Bugs:
+- Beep stutters
+- pit timer runs at 200hz instead of 100hz for some reason
+- idk/etc 🥹
