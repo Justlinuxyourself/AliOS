@@ -1,4 +1,4 @@
-# 💻 AliOS 4.0 - Notebook Edition
+    # 💻 AliOS 4.0 - Notebook Edition
 
 AliOS 4 is a custom-built, 64-bit "Notebook" style operating system. It features a hardened security model, a multi-terminal interface (TTY), and a real-time status bar calibrated for high-precision timing.
 
@@ -41,9 +41,9 @@ AliOS 4 is a custom-built, 64-bit "Notebook" style operating system. It features
 | `timezone` | Adjusts the status bar clock offset in real-time. |
 | `lock` | Manually triggers the hardened lock screen. |
 | `test` | Verifies timer calibration with a 5s countdown. |
-| `beep` | Plays a system alert sound through the PC Speaker. |
-| `twins` | Shows my twins |
-| `sleep` | puts system in sleep until a key press (using hlt) |
+| `beep` | Plays a system alert sound through the PC Speaker. (has a bug, check **Bugs** section.)|
+| `twins` | Shows my twins names bc they are my lovely twins 🥹🥹🥹|
+| `sleep` | puts system in sleep until a key press |
 | `plane` | shows a art of a plane |
 | `about_dev` | About Developer
 | `echo`| print text to screen
