@@ -269,6 +269,7 @@ void twins() {
     vga_write("ADNAN\n");
     vga_write("ZIKE"\n");
     vga_write("MOLY\n");
+    vga_write("ROSIE\n");
 }
 
 void sys_sleep() {
