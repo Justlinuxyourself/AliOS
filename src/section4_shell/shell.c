@@ -267,6 +267,7 @@ void twins() {
     vga_write("VANILLA\n");
     vga_write("SUSTUBE\n");
     vga_write("ADNAN\n");
+    vga_write("ZIKE"\n");
 }
 
 void sys_sleep() {
