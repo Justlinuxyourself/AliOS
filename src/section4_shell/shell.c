@@ -270,6 +270,9 @@ void twins() {
     vga_write("ZIKE (FAF)\n");
     vga_write("MOLY\n");
     vga_write("ROSIE\n");
+    vga_write("E\n");
+    vga_write("Sillycat\n");
+    vga_write("Kaisi\n");
 }
 
 void sys_sleep() {
