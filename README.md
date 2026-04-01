@@ -76,3 +76,10 @@ You are **NOT** allowed to:
 - Beep stutters
 - pit timer runs at 200hz instead of 100hz for some reason
 - idk/etc 🥹
+## Todo:
+- [] ADD: PCI Driver
+- [] ADD: ETH and/or WIFI Support
+- [] ADD: GUI Support
+- [] ADD: ATA Support
+- [] FIX: Beep stutter
+- [] FIX: PIT Bug (fix to 100hz without 1sec being 0.5sec)
