@@ -106,6 +106,7 @@ vga_write("  / ____ \ | |__| |____) | \n");
 vga_write(" /_/    \_\ \____/|_____/  \n");
 vga_write("        ______             \n");
 vga_write("       |______|            \n");
+}
 void lock_system_hardened() {
     char* secret = "Ali123";
     char input[32];

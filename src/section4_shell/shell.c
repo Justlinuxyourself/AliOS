@@ -13,6 +13,10 @@ extern unsigned int get_total_ram_bytes();
 extern void lock_system_hardened();
 extern int timezone_offset_seconds;
 extern void vga_draw_status_bar();
+extern void play_sound();
+extern void nosound();
+extern void vga_set_cursor();
+extern void sleep();
 /* --- String Helpers --- */
 int strcmp(const char* s1, const char* s2) {
     while (*s1 && (*s1 == *s2)) { s1++; s2++; }
