@@ -93,8 +93,19 @@ void trigger_ali_morse() {
 
     // I: .. (Dot, Dot)
     morse_pulse(100); morse_pulse(100);
+    vga_write("PUT PASSWORD ATFER SCREEN IS CLEARED IN 3 SECS IF UR IN LOCK SCREEN EVEN IF THERES NO password: PROMPT\n");
+    sleep_ms(3000);
+    vga_clear();
 }
-
+void bootup_screen() {
+vga_write("             ____   _____  \n");
+vga_write("     /\     / __ \ / ____| \n");
+vga_write("    /  \   | |  | | (___   \n");
+vga_write("   / /\ \  | |  | |\___ \  \n");
+vga_write("  / ____ \ | |__| |____) | \n");
+vga_write(" /_/    \_\ \____/|_____/  \n");
+        ______             
+       |______|            
 void lock_system_hardened() {
     char* secret = "Ali123";
     char input[32];
