@@ -269,7 +269,7 @@ void twins() {
     vga_write("SEL\n");
     vga_write("ISHI\n");
     vga_write("ZAZA\n");
-    vga_write("VANILLA\n");
+    vga_write("VANILLA & MAX\n");
     vga_write("SUSTUBE\n");
     vga_write("ADNAN\n");
     vga_write("ZIKE (FAF)\n");
@@ -278,6 +278,7 @@ void twins() {
     vga_write("E\n");
     vga_write("Sillycat\n");
     vga_write("Kaisi\n");
+    vga_write("ZANNNNNNNN\n");
 }
 
 void sys_sleep() {
