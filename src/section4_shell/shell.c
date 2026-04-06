@@ -254,6 +254,8 @@ void draw_custom_plane() {
 }
 
 void twins() {
+    vga_write("APHRODITE\n");
+    vga_write("SAKI (BEST SUNDAY GOONER)\n");
     vga_write("QOQO\n");
     vga_write("KEI\n");
     vga_write("LWAH\n");
