@@ -175,6 +175,8 @@ void kernel_main() {
     shell_init(); 
     timer_init();
     vga_init_ttys();
+    bootup_screen();
+    sleep_ms(1000);
 
     while (inb(0x64) & 0x01) { inb(0x60); }
 
