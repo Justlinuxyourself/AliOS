@@ -307,6 +307,45 @@ void sys_sleep() {
     vga_draw_status_bar();
     lock_system_hardened();
 }
+void command_calc(int argc, char** argv) {
+    // Check if we have enough arguments: calc [num1] [op] [num2]
+    if (argc < 4) {
+        vga_write("Usage: calc [num1] [a/s/m/d] [num2]\n");
+        return;
+    }
+
+    int n1 = atoi_custom(argv[1]);
+    char op = argv[2][0]; 
+    int n2 = atoi_custom(argv[3]);
+    int result = 0;
+
+    
+    if (op == 'a') {
+        result = n1 + n2;
+    } else if (op == 's') {
+        result = n1 - n2;
+    } else if (op == 'm') {
+        result = n1 * n2;
+    } else if (op == 'd') {
+        if (n2 == 0) {
+            vga_write("Error: Division by zero!\n");
+            return;
+        }
+        result = n1 / n2;
+    } else {
+        vga_write("Error: Unknown operator. Use a, s, m, or d.\n");
+        return;
+    }
+
+    
+    char res_buffer[32]; // Buffer to hold the output string
+    itoa(result, res_buffer);
+    
+    vga_write("Result: ");
+    vga_write(res_buffer);
+    vga_write("\n");
+}
+
 /* --- Shell Logic --- */
 void shell_register_command(const char* name, const char* desc, command_func func) {
     command_node_t* new_node = (command_node_t*)kmalloc(sizeof(command_node_t));
