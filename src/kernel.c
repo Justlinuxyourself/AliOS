@@ -98,15 +98,16 @@ void trigger_ali_morse() {
     vga_clear();
 }
 void bootup_screen() {
-vga_write("             ____   _____  \n");
-vga_write("     /\     / __ \ / ____| \n");
-vga_write("    /  \   | |  | | (___   \n");
-vga_write("   / /\ \  | |  | |\___ \  \n");
-vga_write("  / ____ \ | |__| |____) | \n");
-vga_write(" /_/    \_\ \____/|_____/  \n");
-vga_write("        ______             \n");
-vga_write("       |______|            \n");
+    vga_write("             ____   _____  \n");
+    vga_write("     /\\     / __ \\ / ____| \n");
+    vga_write("    /  \\   | |  | | (___   \n");
+    vga_write("   / /\\ \\  | |  | |\\___ \\  \n");
+    vga_write("  / ____ \\ | |__| |____) | \n");
+    vga_write(" /_/    \\_\\ \\____/|_____/  \n");
+    vga_write("        ______             \n");
+    vga_write("       |______|            \n");
 }
+
 void lock_system_hardened() {
     char* secret = "Ali123";
     char input[32];
