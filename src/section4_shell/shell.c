@@ -378,6 +378,7 @@ void shell_init() {
     shell_register_command("plane", "Show a art of a plane", draw_custom_plane);
     shell_register_command("twins", "Shows my twins names", twins);
     shell_register_command("sleep", "Sleep", sys_sleep);
+    shell_register_command("calc", "Calculator", command_calc);
 }
 
 /* src/section4_shell/shell.c */
