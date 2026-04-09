@@ -111,6 +111,25 @@ int atoi_custom(char* str) {
     }
     return sign * res;
 }
+/* itohex: Convert integer to Hexadecimal string */
+char* itohex(unsigned long value, char* str) {
+    char* hex_chars = "0123456789ABCDEF";
+    int i = 0;
+    
+    if (value == 0) {
+        str[i++] = '0';
+        str[i] = '\0';
+        return str;
+    }
+
+    while (value > 0) {
+        str[i++] = hex_chars[value % 16];
+        value /= 16;
+    }
+    str[i] = '\0';
+    reverse(str, i);
+    return str;
+}
 
 /* --- Built-in Commands --- */
 void cmd_help(char* args) {
@@ -364,6 +383,38 @@ void command_calc(char* args) {
     vga_write("\n");
 }
 
+void cmd_peek(char* args) {
+    if (args == 0 || *args == '\0') {
+        vga_write("Usage: peek [hex_address]\nExample: peek 0xB8000\n");
+        return;
+    }
+
+    // Simple hex string to long converter
+    unsigned long addr = 0;
+    int start = 0;
+    if (args[0] == '0' && (args[1] == 'x' || args[1] == 'X')) start = 2;
+
+    for (int i = start; args[i] != '\0'; i++) {
+        addr *= 16;
+        if (args[i] >= '0' && args[i] <= '9') addr += (args[i] - '0');
+        else if (args[i] >= 'a' && args[i] <= 'f') addr += (args[i] - 'a' + 10);
+        else if (args[i] >= 'A' && args[i] <= 'F') addr += (args[i] - 'A' + 10);
+    }
+
+    unsigned char* ptr = (unsigned char*)addr;
+    vga_write("Memory at 0x");
+    vga_write(args);
+    vga_write(": ");
+
+    // Show the next 8 bytes
+    for (int i = 0; i < 8; i++) {
+        char buf[3];
+        itohex(ptr[i], buf);
+        if (ptr[i] < 16) vga_write("0"); // Padding
+        vga_write(buf);
+        vga_write(" ");
+    }
+}
 
 /* --- Shell Logic --- */
 void shell_register_command(const char* name, const char* desc, command_func func) {
@@ -398,6 +449,7 @@ void shell_init() {
     shell_register_command("twins", "Shows my twins names", twins);
     shell_register_command("sleep", "Sleep", sys_sleep);
     shell_register_command("calc", "Calculator", command_calc);
+    shell_register_command("peek", "Inspect raw memory addresses", cmd_peek);
 }
 
 /* src/section4_shell/shell.c */
