@@ -307,44 +307,64 @@ void sys_sleep() {
     vga_draw_status_bar();
     lock_system_hardened();
 }
-void command_calc(int argc, char** argv) {
-    // Check if we have enough arguments: calc [num1] [op] [num2]
-    if (argc < 4) {
-        vga_write("Usage: calc [num1] [a/s/m/d] [num2]\n");
+void command_calc(char* args) {
+    if (args == 0 || *args == '\0') {
+        vga_write("Usage: calc [num1] [op] [num2]\n");
+        vga_write("Example: calc 5 a 10\n");
         return;
     }
 
-    int n1 = atoi_custom(argv[1]);
-    char op = argv[2][0]; 
-    int n2 = atoi_custom(argv[3]);
+    char* part1 = args;
+    char* part2 = 0;
+    char* part3 = 0;
+
+    // 1. Find the first space to get the operator
+    for (int i = 0; args[i]; i++) {
+        if (args[i] == ' ') {
+            args[i] = '\0';     // Terminate num1
+            part2 = &args[i+1]; // Start of operator
+            break;
+        }
+    }
+
+    if (!part2) { vga_write("Error: Missing operator.\n"); return; }
+
+    // 2. Find the second space to get the second number
+    for (int i = 0; part2[i]; i++) {
+        if (part2[i] == ' ') {
+            part2[i] = '\0';    // Terminate operator
+            part3 = &part2[i+1]; // Start of num2
+            break;
+        }
+    }
+
+    if (!part3) { vga_write("Error: Missing second number.\n"); return; }
+
+    // Now we use your existing atoi_custom
+    int n1 = atoi_custom(part1);
+    char op = part2[0]; 
+    int n2 = atoi_custom(part3);
     int result = 0;
 
-    
-    if (op == 'a') {
-        result = n1 + n2;
-    } else if (op == 's') {
-        result = n1 - n2;
-    } else if (op == 'm') {
-        result = n1 * n2;
-    } else if (op == 'd') {
-        if (n2 == 0) {
-            vga_write("Error: Division by zero!\n");
-            return;
-        }
+    if (op == 'a')      result = n1 + n2;
+    else if (op == 's') result = n1 - n2;
+    else if (op == 'm') result = n1 * n2;
+    else if (op == 'd') {
+        if (n2 == 0) { vga_write("Error: Div by 0\n"); return; }
         result = n1 / n2;
     } else {
-        vga_write("Error: Unknown operator. Use a, s, m, or d.\n");
+        vga_write("Error: Use a/s/m/d\n");
         return;
     }
 
-    
-    char res_buffer[32]; // Buffer to hold the output string
+    char res_buffer[32];
     itoa(result, res_buffer);
     
     vga_write("Result: ");
     vga_write(res_buffer);
     vga_write("\n");
 }
+
 
 /* --- Shell Logic --- */
 void shell_register_command(const char* name, const char* desc, command_func func) {
