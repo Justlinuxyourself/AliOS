@@ -517,7 +517,6 @@ void shell_init() {
     shell_register_command("run", "Execute AliScript code", cmd_run_script);
 }
 
-}
 
 /* src/section4_shell/shell.c */
 
