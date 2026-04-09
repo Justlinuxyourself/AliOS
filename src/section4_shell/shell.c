@@ -5,6 +5,7 @@ All rights reserved.
 #include "shell.h"
 #include "../section1_cpu/heap.h"
 #include "../section1_cpu/io.h"
+#include "aliscr.h"
 volatile int is_sleeping = 0;
 static command_node_t* command_list = 0;
 extern unsigned int get_heap_usage();
