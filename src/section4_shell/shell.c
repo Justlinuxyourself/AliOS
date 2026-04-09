@@ -513,7 +513,10 @@ void shell_init() {
     shell_register_command("sleep", "Sleep", sys_sleep);
     shell_register_command("calc", "Calculator", command_calc);
     shell_register_command("peek", "Inspect raw memory addresses", cmd_peek);
-shell_register_command("poke", "Write to memory addrs", cmd_poke);
+    shell_register_command("poke", "Write to memory addrs", cmd_poke);
+    shell_register_command("run", "Execute AliScript code", cmd_run_script);
+}
+
 }
 
 /* src/section4_shell/shell.c */
