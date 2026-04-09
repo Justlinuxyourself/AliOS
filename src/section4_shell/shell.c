@@ -415,6 +415,68 @@ void cmd_peek(char* args) {
         vga_write(" ");
     }
 }
+void cmd_poke(char* args) {
+    if (args == 0 || *args == '\0') {
+        vga_write("Usage: poke [addr] [val]\nExample: poke 0xB8000 0x41\n");
+        return;
+    }
+
+    char* addr_str = args;
+    char* val_str = 0;
+
+    // 1. Split the string at the space
+    for (int i = 0; args[i]; i++) {
+        if (args[i] == ' ') {
+            args[i] = '\0';
+            val_str = &args[i+1];
+            break;
+        }
+    }
+
+    if (!val_str) {
+        vga_write("Error: Missing value.\n");
+        return;
+    }
+
+    // 2. Parse Address (Hex or Dec)
+    unsigned long addr = 0;
+    int i = 0;
+    if (addr_str[0] == '0' && (addr_str[1] == 'x' || addr_str[1] == 'X')) {
+        i = 2;
+        while (addr_str[i]) {
+            addr *= 16;
+            if (addr_str[i] >= '0' && addr_str[i] <= '9') addr += (addr_str[i] - '0');
+            else if (addr_str[i] >= 'a' && addr_str[i] <= 'f') addr += (addr_str[i] - 'a' + 10);
+            else if (addr_str[i] >= 'A' && addr_str[i] <= 'F') addr += (addr_str[i] - 'A' + 10);
+            i++;
+        }
+    } else {
+        addr = (unsigned long)atoi_custom(addr_str);
+    }
+
+    // 3. Parse Value (Hex or Dec)
+    unsigned char val = 0;
+    if (val_str[0] == '0' && (val_str[1] == 'x' || val_str[1] == 'X')) {
+        int j = 2;
+        while (val_str[j]) {
+            val *= 16;
+            if (val_str[j] >= '0' && val_str[j] <= '9') val += (val_str[j] - '0');
+            else if (val_str[j] >= 'a' && val_str[j] <= 'f') val += (val_str[j] - 'a' + 10);
+            else if (val_str[j] >= 'A' && val_str[j] <= 'F') val += (val_str[j] - 'A' + 10);
+            j++;
+        }
+    } else {
+        val = (unsigned char)atoi_custom(val_str);
+    }
+
+    // 4. The Poke: Write to raw memory
+    unsigned char* ptr = (unsigned char*)addr;
+    *ptr = val;
+
+    vga_write("Memory modified at 0x");
+    vga_write(addr_str);
+    vga_write("\n");
+}
 
 /* --- Shell Logic --- */
 void shell_register_command(const char* name, const char* desc, command_func func) {
