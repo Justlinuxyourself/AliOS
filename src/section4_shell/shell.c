@@ -340,7 +340,6 @@ void command_calc(char* args) {
 
     if (!part3) { vga_write("Error: Missing second number.\n"); return; }
 
-    // Now we use your existing atoi_custom
     int n1 = atoi_custom(part1);
     char op = part2[0]; 
     int n2 = atoi_custom(part3);
