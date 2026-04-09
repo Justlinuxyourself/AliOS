@@ -1,64 +1,51 @@
-# AliOS 4 Makefile
-# LINKED TO NOTEBOOK: Build System Configuration
+# --- AliOS 4 Master Build System ---
 
-# --- Configuration ---
-OBJ = boot.o kernel.o vga.o kbd.o shell.o heap.o cmos.o timer.o speaker.o
+# 1. Project Structure
+SRCDIR = src
+OBJDIR = obj
 BIN = alios4.bin
 ISO = alios4.iso
 
-# Compiler Flags (DRY - Don't Repeat Yourself)
-CFLAGS = -m64 -c -ffreestanding -fno-stack-protector -Iinclude
+# 2. Automatically find ALL .c and .asm files in all subfolders
+C_SOURCES = $(shell find $(SRCDIR) -name '*.c')
+ASM_SOURCES = $(shell find $(SRCDIR) -name '*.asm')
 
-# --- Primary Targets ---
+# 3. Transform source paths into object paths in the 'obj' folder
+OBJ = $(C_SOURCES:$(SRCDIR)/%.c=$(OBJDIR)/%.o)
+OBJ += $(ASM_SOURCES:$(SRCDIR)/%.asm=$(OBJDIR)/%.o)
+
+# 4. Flags
+CFLAGS = -m64 -c -ffreestanding -fno-stack-protector -Iinclude -Wall -Wextra
+LDFLAGS = -n -T linker.ld
+
+# --- Build Rules ---
 
 all: $(ISO)
 
-# Link the kernel and then embed the signature
+# Link everything together
 $(BIN): $(OBJ)
-	ld -n -o $(BIN) -T linker.ld $(OBJ)
-	# Embedding signature safely at the end of the binary
-	echo -n "Made_by_justlinuxyourself" >> $(BIN)
+	@echo "Linking AliOS 4..."
+	ld $(LDFLAGS) -o $(BIN) $(OBJ)
+	@echo -n "Made_by_justlinuxyourself" >> $(BIN)
 
-# --- Assembly Rules ---
+# Rule for C files (Handles subdirectories automatically)
+$(OBJDIR)/%.o: $(SRCDIR)/%.c
+	@mkdir -p $(@D)
+	gcc $(CFLAGS) $< -o $@
 
-boot.o: src/section1_cpu/boot.asm
-	nasm -f elf64 src/section1_cpu/boot.asm -o boot.o
+# Rule for Assembly files
+$(OBJDIR)/%.o: $(SRCDIR)/%.asm
+	@mkdir -p $(@D)
+	nasm -f elf64 $< -o $@
 
-# --- C Compilation Rules ---
-
-speaker.o: src/section1_cpu/speaker.c
-	gcc $(CFLAGS) src/section1_cpu/speaker.c -o speaker.o
-
-timer.o: src/section1_cpu/timer.c
-	gcc $(CFLAGS) src/section1_cpu/timer.c -o timer.o
-
-kernel.o: src/kernel.c
-	gcc $(CFLAGS) src/kernel.c -o kernel.o
-
-vga.o: src/section2_video/vga.c
-	gcc $(CFLAGS) src/section2_video/vga.c -o vga.o
-
-kbd.o: src/section3_io/kbd.c
-	gcc $(CFLAGS) src/section3_io/kbd.c -o kbd.o
-
-shell.o: src/section4_shell/shell.c
-	gcc $(CFLAGS) src/section4_shell/shell.c -o shell.o
-
-heap.o: src/section1_cpu/heap.c
-	gcc $(CFLAGS) src/section1_cpu/heap.c -o heap.o
-
-cmos.o: src/section3_io/cmos.c
-	gcc $(CFLAGS) src/section3_io/cmos.c -o cmos.o
-
-# --- ISO Creation ---
-
+# ISO Generation
 $(ISO): $(BIN)
-	mkdir -p isodir/boot/grub
+	@mkdir -p isodir/boot/grub
 	cp $(BIN) isodir/boot/
 	cp grub.cfg isodir/boot/grub/
 	grub-mkrescue -o $(ISO) isodir
 
 clean:
-	rm -rf *.o $(BIN) $(ISO) isodir
+	rm -rf $(OBJDIR) $(BIN) $(ISO) isodir
 
 .PHONY: all clean
