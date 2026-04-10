@@ -49,9 +49,19 @@ void execute_aliscript_line(char* args) {
         else if (strcmp(token, "print") == 0) { char b[16]; vga_write(itoa(pop(), b)); vga_write(" "); }
         else if (strcmp(token, "cls") == 0) vga_clear();
         else if (strcmp(token, "plane") == 0) draw_custom_plane();
-    }
+        else if (strcmp(token, "poke") == 0) { 
+            int val = pop();                // Value to write
+            int addr = pop();               // Destination address
+            unsigned char* ptr = (unsigned char*)addr; 
+            *ptr = (unsigned char)val;      // The "Write" Operation
+        }
+        else if (strcmp(token, "peek") == 0) { 
+            int addr = pop();               // Target address
+            unsigned char* ptr = (unsigned char*)addr;
+            push((int)(*ptr));              // The "Read" Operation
+        }
 }
-
+}
 /* --- THE BLOCKING INPUT ENGINE --- */
 // This function polls the hardware ports directly to wait for a key
 char wait_for_key() {
