@@ -513,6 +513,38 @@ void cmd_ayah() {
     vga_write(quran_db[r].text);
     vga_write("\n");
 }
+typedef struct {
+    const char* book;
+    int chapter;
+    int verse;
+    const char* text;
+} bible_t;
+
+void cmd_verse() {
+    bible_t bible_db[] = {
+        {"Psalms", 23, 1, "The Lord is my shepherd; I shall not want."},
+        {"John", 1, 5, "The light shines in the darkness, and the darkness has not overcome it."},
+        {"Philippians", 4, 13, "I can do all things through Christ who strengthens me."},
+        {"Matthew", 5, 9, "Blessed are the peacemakers, for they shall be called sons of God."},
+        {"Proverbs", 3, 5, "Trust in the Lord with all your heart and lean not on your own understanding."}
+    };
+
+    int db_size = sizeof(bible_db) / sizeof(bible_t);
+    int r = cmos_get_sec() % db_size;
+
+    char c_str[8], v_str[8];
+
+    vga_write("\n");
+    // Format: Book Chapter:Verse - Text
+    vga_write(bible_db[r].book);
+    vga_write(" ");
+    vga_write(itoa(bible_db[r].chapter, c_str));
+    vga_write(":");
+    vga_write(itoa(bible_db[r].verse, v_str));
+    vga_write(" - ");
+    vga_write(bible_db[r].text);
+    vga_write("\n");
+}
 
 /* --- Shell Logic --- */
 void shell_register_command(const char* name, const char* desc, command_func func) {
@@ -551,6 +583,7 @@ void shell_init() {
     shell_register_command("poke", "Write to memory addrs", cmd_poke);
     shell_register_command("run", "Execute AliScript code", cmd_run_script);
     shell_register_command("ayah", "Choose Random Quran Ayah and Print it (im turning into terry davis)", cmd_ayah);
+    shell_register_command("verse", "Choose Random Bible Verse and Print it", cmd_verse);
 }
 
 
