@@ -26,6 +26,14 @@ typedef struct {
 
 env_var_t env_table[10]; // Store up to 10 variables in RAM
 // some structs are down with the code that uses it bc i didnt plan for it, it just popped ip in my head
+typedef struct {
+    char task[48];
+    int done;
+    int active;
+} todo_t;
+
+todo_t my_list[10]; // 10 slots for your daily goals
+
 /* --- String Helpers --- */
 int strcmp(const char* s1, const char* s2) {
     while (*s1 && (*s1 == *s2)) { s1++; s2++; }
@@ -574,6 +582,30 @@ void cmd_get(char* key) {
         }
     }
     vga_write("Variable not found.\n");
+}
+void todo_add(char* text) {
+    for(int i = 0; i < 10; i++) {
+        if(!my_list[i].active) {
+            strcpy(my_list[i].task, text);
+            my_list[i].done = 0;
+            my_list[i].active = 1;
+            vga_write("Task added to AliOS list.\n");
+            return;
+        }
+    }
+    vga_write("Error: Your brain (list) is full!\n");
+}
+void todo_show() {
+    vga_write("\n--- ALIOS DAILY GOALS ---\n");
+    for(int i = 0; i < 10; i++) {
+        if(my_list[i].active) {
+            vga_write("[");
+            vga_write(my_list[i].done ? "X" : " ");
+            vga_write("] ");
+            vga_write(my_list[i].task);
+            vga_write("\n");
+        }
+    }
 }
 
 /* --- Shell Logic --- */
