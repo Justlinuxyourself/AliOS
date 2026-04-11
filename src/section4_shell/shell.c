@@ -18,6 +18,14 @@ extern void play_sound();
 extern void nosound();
 extern void vga_set_cursor();
 extern void sleep();
+typedef struct {
+    char key[16];
+    char value[32];
+    int active;
+} env_var_t;
+
+env_var_t env_table[10]; // Store up to 10 variables in RAM
+// some structs are down with the code that uses it bc i didnt plan for it, it just popped ip in my head
 /* --- String Helpers --- */
 int strcmp(const char* s1, const char* s2) {
     while (*s1 && (*s1 == *s2)) { s1++; s2++; }
@@ -544,6 +552,28 @@ void cmd_verse() {
     vga_write(" - ");
     vga_write(bible_db[r].text);
     vga_write("\n");
+}
+void cmd_set(char* key, char* val) {
+    for(int i = 0; i < 10; i++) {
+        if(!env_table[i].active || strcmp(env_table[i].key, key) == 0) {
+            strcpy(env_table[i].key, key);
+            strcpy(env_table[i].value, val);
+            env_table[i].active = 1;
+            vga_write("Variable set.\n");
+            return;
+        }
+    }
+    vga_write("Error: Environment table full!\n");
+}
+void cmd_get(char* key) {
+    for(int i = 0; i < 10; i++) {
+        if(env_table[i].active && strcmp(env_table[i].key, key) == 0) {
+            vga_write(env_table[i].value);
+            vga_write("\n");
+            return;
+        }
+    }
+    vga_write("Variable not found.\n");
 }
 
 /* --- Shell Logic --- */
