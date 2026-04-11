@@ -479,6 +479,40 @@ void cmd_poke(char* args) {
     vga_write(addr_str);
     vga_write("\n");
 }
+typedef struct {
+    int surah;
+    int ayah;
+    const char* text;
+} ayah_t;
+
+void cmd_ayah() {
+    // Array of Ayahs stored in the Kernel Data Segment
+    ayah_t quran_db[] = {
+        {94, 5, "For indeed, with hardship [will be] ease."},
+        {2, 152, "So remember Me; I will remember you."},
+        {3, 139, "So do not weaken and do not grieve."},
+        {2, 286, "Allah does not charge a soul except with that within its capacity."},
+        {50, 16, "And We are closer to him than [his] jugular vein."}
+    };
+
+    // Calculate total entries in the database
+    int db_size = sizeof(quran_db) / sizeof(ayah_t);
+
+    // Use CMOS seconds to pick a random index
+    int r = cmos_get_sec() % db_size;
+
+    // Buffers for itoa conversion
+    char s_str[8], a_str[8];
+
+    vga_write("\n");
+    // Print Format -> (SurahNum):(AyahNum) (Text)
+    vga_write(itoa(quran_db[r].surah, s_str));
+    vga_write(":");
+    vga_write(itoa(quran_db[r].ayah, a_str));
+    vga_write(" ");
+    vga_write(quran_db[r].text);
+    vga_write("\n");
+}
 
 /* --- Shell Logic --- */
 void shell_register_command(const char* name, const char* desc, command_func func) {
@@ -516,6 +550,7 @@ void shell_init() {
     shell_register_command("peek", "Inspect raw memory addresses", cmd_peek);
     shell_register_command("poke", "Write to memory addrs", cmd_poke);
     shell_register_command("run", "Execute AliScript code", cmd_run_script);
+    shell_register_command("ayah", "Choose Random Quran Ayah and Print it (im turning into terry davis)", cmd_ayah);
 }
 
 
