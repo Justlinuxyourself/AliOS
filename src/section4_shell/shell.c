@@ -646,6 +646,10 @@ void shell_init() {
     shell_register_command("run", "Execute AliScript code", cmd_run_script);
     shell_register_command("ayah", "Choose Random Quran Ayah and Print it (im turning into terry davis)", cmd_ayah);
     shell_register_command("verse", "Choose Random Bible Verse and Print it", cmd_verse);
+    shell_register_command("set", "Set VAR", cmd_set);
+    shell_register_command("get", "Get VAR", cmd_get);
+    shell_register_command("tdadd", "Add to ToDo List", todo_add);
+    shell_register_command("tdshw", "Show ToDo List", todo_show);
 }
 
 
