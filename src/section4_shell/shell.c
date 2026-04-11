@@ -300,6 +300,7 @@ void twins() {
     vga_write("Kaisi\n");
     vga_write("ZANNNNNNNN\n");
     vga_write("ABDUALLAH\n");
+    vga_write("MIKAY (BATTERY EATER TWINIES)\n");
 }
 
 void sys_sleep() {
