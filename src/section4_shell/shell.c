@@ -574,15 +574,25 @@ void cmd_set(char* key, char* val) {
     vga_write("Error: Environment table full!\n");
 }
 void cmd_get(char* key) {
+    // 1. SAFETY CHECK: If user just types 'get' with no name
+    if (key == 0 || key[0] == '\0') {
+        vga_write("Usage: get [key]\n");
+        return;
+    }
+
     for(int i = 0; i < 10; i++) {
-        if(env_table[i].active && strcmp(env_table[i].key, key) == 0) {
-            vga_write(env_table[i].value);
-            vga_write("\n");
-            return;
+        if(env_table[i].active) {
+            // 2. Double check the stored key exists before comparing
+            if (env_table[i].key != 0 && strcmp(env_table[i].key, key) == 0) {
+                vga_write(env_table[i].value);
+                vga_write("\n");
+                return;
+            }
         }
     }
-    vga_write("Variable not found.\n");
+    vga_write("Error: Variable not found.\n");
 }
+
 void todo_add(char* text) {
     for(int i = 0; i < 10; i++) {
         if(!my_list[i].active) {
@@ -596,17 +606,19 @@ void todo_add(char* text) {
     vga_write("Error: Your brain (list) is full!\n");
 }
 void todo_show() {
-    vga_write("\n--- ALIOS DAILY GOALS ---\n");
+    int found = 0;
     for(int i = 0; i < 10; i++) {
-        if(my_list[i].active) {
-            vga_write("[");
-            vga_write(my_list[i].done ? "X" : " ");
-            vga_write("] ");
+        // Only print if the slot is explicitly marked active
+        if(my_list[i].active == 1 && my_list[i].task[0] != '\0') {
+            vga_write("- ");
             vga_write(my_list[i].task);
             vga_write("\n");
+            found = 1;
         }
     }
+    if(!found) vga_write("No tasks found.\n");
 }
+
 
 /* --- Shell Logic --- */
 void shell_register_command(const char* name, const char* desc, command_func func) {
