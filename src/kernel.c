@@ -171,10 +171,17 @@ void lock_system_hardened() {
         }
     }
 }
+void todo_init() {
+    for(int i = 0; i < 10; i++) {
+        my_list[i].active = 0;
+        my_list[i].task[0] = '\0'; // Manually kill any garbage data
+    }
+}
 
 void kernel_main() {
     vga_clear();
     shell_init(); 
+    todo_init();
     timer_init();
     vga_init_ttys();
     bootup_screen();
