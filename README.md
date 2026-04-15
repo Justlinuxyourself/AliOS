@@ -45,9 +45,13 @@ AliOS 4 is a custom-built, 64-bit "Notebook" style operating system. It features
 | `twins` | Shows my twins names bc they are my lovely twins 🥹🥹🥹|
 | `sleep` | puts system in sleep until a key press |
 | `plane` | shows a art of a plane |
-| `about_dev` | About Developer
-| `echo`| print text to screen
-
+| `about_dev` | About Developer |
+| `echo`| print text to screen |
+| `ayah` | chooses random ayah from quran and prints it |
+| `verse` | chooses random verse from the bible and prints it |
+| `tdadd` | adds todo to mem |
+| `tdshw` | shows todo from mem |
+| `calc` | Calculator |
 ## 📁 Directory Structure
 ```text
 .
