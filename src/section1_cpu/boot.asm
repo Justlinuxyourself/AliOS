@@ -19,53 +19,63 @@ global _start
 extern kernel_main
 
 _start:
-    ; Initialize stack
+    ; 1. CRITICAL: Stop interrupts immediately. 
+    ; Real hardware sends timer ticks that will crash you during the switch.
+    cli 
+
+    ; 2. Initialize stack using your .bss label
     mov esp, stack_top
 
-    ; 1. Clear Page Tables (0x1000 to 0x4000)
-    ; This prevents junk data from causing a Triple Fault
-    mov edi, 0x1000
+    ; 3. Clear Page Tables in .bss
+    ; Using 'pml4' instead of 0x1000 ensures safety on real silicon.
+    mov edi, pml4
     xor eax, eax
-    mov ecx, 4096                ; Clear 16KB (PML4, PDPT, and PDT)
+    mov ecx, 3072                ; Clear 3 pages (4096 * 3 / 4)
     rep stosd
 
-    ; 2. Build the 4-Level Paging Hierarchy
-    ; Structure: PML4 [0x1000] -> PDPT [0x2000] -> PDT [0x3000]
+    ; 4. Build the 4-Level Paging Hierarchy
     ; Flags: 0x3 (Present + Read/Write)
-    mov dword [0x1000], 0x2003   ; PML4 Entry 0 points to PDPT
-    mov dword [0x2000], 0x3003   ; PDPT Entry 0 points to PDT
-    
-    ; 3. Identity Map 10MB of RAM using 2MB "Huge Pages"
-    ; 0x83 = Present + R/W + Huge Page (Bit 7)
-    mov dword [0x3000], 0x00000083  ; 0MB - 2MB (Kernel)
-    mov dword [0x3008], 0x00200083  ; 2MB - 4MB (Heap Start)
-    mov dword [0x3010], 0x00400083  ; 4MB - 6MB
-    mov dword [0x3018], 0x00600083  ; 6MB - 8MB
-    mov dword [0x3020], 0x00800083  ; 8MB - 10MB
+    mov eax, pdpt
+    or eax, 0x3
+    mov [pml4], eax              ; PML4 Entry 0 points to PDPT
 
-    ; 4. Enable PAE (Physical Address Extension)
+    mov eax, pdpt                ; Pointer to PDPT
+    mov eax, pdt
+    or eax, 0x3
+    mov [pdpt], eax              ; PDPT Entry 0 points to PDT
+    
+    ; 5. Identity Map 10MB of RAM using 2MB "Huge Pages"
+    ; 0x83 = Present + R/W + Huge Page (Bit 7)
+    mov dword [pdt], 0x00000083      ; 0MB - 2MB (Kernel)
+    mov dword [pdt + 8], 0x00200083  ; 2MB - 4MB (Heap Start)
+    mov dword [pdt + 16], 0x00400083 ; 4MB - 6MB
+    mov dword [pdt + 24], 0x00600083 ; 6MB - 8MB
+    mov dword [pdt + 32], 0x00800083 ; 8MB - 10MB
+
+    ; 6. Enable PAE (Physical Address Extension)
     mov eax, cr4
     or eax, 1 << 5
     mov cr4, eax
 
-    ; 5. Set CR3 to PML4 address
-    mov eax, 0x1000
+    ; 7. Set CR3 to point to your PML4 in .bss
+    mov eax, pml4
     mov cr3, eax
 
-    ; 6. Enable Long Mode in EFER MSR
+    ; 8. Enable Long Mode in EFER MSR
     mov ecx, 0xC0000080
     rdmsr
     or eax, 1 << 8
     wrmsr
 
-    ; 7. Enable Paging in CR0
+    ; 9. Enable Paging in CR0 to activate 64-bit mode
     mov eax, cr0
     or eax, 1 << 31
     mov cr0, eax
 
-    ; 8. Load 64-bit GDT and jump to 64-bit code
+    ; 10. Load 64-bit GDT and perform the jump
     lgdt [gdt64.ptr]
     jmp 0x08:init_64
+
 
 [bits 64]
 init_64:
@@ -94,6 +104,9 @@ gdt64:
 
 section .bss
 align 4096
+pml4: resb 4096
+pdpt: resb 4096
+pdt:  resb 4096
 stack_bottom:
     resb 16384
 stack_top:
