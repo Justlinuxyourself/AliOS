@@ -561,18 +561,42 @@ void cmd_verse() {
     vga_write(bible_db[r].text);
     vga_write("\n");
 }
-void cmd_set(char* key, char* val) {
+void cmd_set(char* args) {
+    if (args == 0 || *args == '\0') {
+        vga_write("Usage: set [key] [value]\n");
+        return;
+    }
+
+    char* key = args;
+    char* val = 0;
+    
+    for (int i = 0; args[i]; i++) {
+        if (args[i] == ' ') {
+            args[i] = '\0'; 
+            val = &args[i+1]; 
+            break;
+        }
+    }
+
+    if (!val || *val == '\0') {
+        vga_write("Error: Missing value for variable.\n");
+        return;
+    }
+
+    // Save to the table
     for(int i = 0; i < 10; i++) {
+        // Look for empty slot or overwrite existing key
         if(!env_table[i].active || strcmp(env_table[i].key, key) == 0) {
             strcpy(env_table[i].key, key);
             strcpy(env_table[i].value, val);
             env_table[i].active = 1;
-            vga_write("Variable set.\n");
+            vga_write("Variable set.");
             return;
         }
     }
-    vga_write("Error: Environment table full!\n");
+    vga_write("Error: Environment table full!");
 }
+
 void cmd_get(char* key) {
     // 1. SAFETY CHECK: If user just types 'get' with no name
     if (key == 0 || key[0] == '\0') {
