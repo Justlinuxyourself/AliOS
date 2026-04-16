@@ -79,14 +79,14 @@ _start:
 
 [bits 64]
 init_64:
-    ; Ensure segment registers are clean for 64-bit
     mov ax, 0
     mov ss, ax
     mov ds, ax
     mov es, ax
-    
-    ; Call the C kernel
+    mov fs, ax
+    mov gs, ax
     call kernel_main
+
     
     ; If kernel returns, halt the CPU
 .halt:
