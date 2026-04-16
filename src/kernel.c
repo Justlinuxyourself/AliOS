@@ -15,6 +15,12 @@ typedef struct {
     char command_buffer[80];
     int buffer_idx;
 } tty_t;
+typedef struct {
+	char task[48];
+	int done;
+	int active;
+} todo_t;
+extern todo_t my_list[10];
 
 extern char kbd_get_char(unsigned char scancode);
 extern void timer_init();
