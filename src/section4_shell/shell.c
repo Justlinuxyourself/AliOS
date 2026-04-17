@@ -19,6 +19,7 @@ extern void play_sound();
 extern void nosound();
 extern void vga_set_cursor();
 extern void sleep();
+extern void vga_set_color(unsigned char color);
 
 typedef struct {
     char key[16];
