@@ -5,9 +5,9 @@ Copyright (c) 2026 Ali
 All rights reserved.
 */
 #include "../section1_cpu/heap.h"
-
 #define VGA_ADDRESS 0xB8000
 #define NOTEBOOK_YELLOW 0x1E
+unsigned char current_vga_color = NOTEBOOK_YELLOW; // Default color
 #define WIDTH 80
 #define HEIGHT 25
 #define MAX_TTYS 10
@@ -197,12 +197,16 @@ void vga_scroll() {
     vga_draw_status_bar();
 }
 
+
+
+void vga_set_color(unsigned char color) {
+    current_vga_color = color;
+}
+
 void vga_putchar(char c) {
     tty_t* active = &ttys[current_tty];
     unsigned short* vga_hardware = (unsigned short*)VGA_ADDRESS;
 
-    // Boundary check: Row 24 starts at index 1920 (24 * 80)
-    // If the next character would land on Row 24, we scroll first.
     if (active->cursor_pos >= WIDTH * (HEIGHT - 1)) {
         vga_scroll();
     }
@@ -212,24 +216,26 @@ void vga_putchar(char c) {
     } else if (c == '\b') {
         if (active->cursor_pos > 0) {
             active->cursor_pos--;
-            unsigned short blank = (unsigned short)' ' | (unsigned short)NOTEBOOK_YELLOW << 8;
+            // USE THE VARIABLE HERE
+            unsigned short blank = (unsigned short)' ' | (unsigned short)current_vga_color << 8;
             vga_hardware[active->cursor_pos] = blank;
             active->buffer[active->cursor_pos] = blank;
         }
     } else {
-        unsigned short glyph = (unsigned short)c | (unsigned short)NOTEBOOK_YELLOW << 8;
+        // AND USE THE VARIABLE HERE
+        unsigned short glyph = (unsigned short)c | (unsigned short)current_vga_color << 8;
         vga_hardware[active->cursor_pos] = glyph;
         active->buffer[active->cursor_pos] = glyph;
         active->cursor_pos++;
     }
 
-    // Double check after writing to ensure we didn't just fill the last slot of Row 23
     if (active->cursor_pos >= WIDTH * (HEIGHT - 1)) {
         vga_scroll();
     }
 
     update_hardware_cursor(active->cursor_pos);
 }
+
 
 void vga_write(const char* data) {
     for (int i = 0; data[i] != '\0'; i++) {
