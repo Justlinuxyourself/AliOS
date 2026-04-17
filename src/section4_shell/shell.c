@@ -711,17 +711,17 @@ void cmd_menu(char* args) {
             vga_clear(); 
             
             // Execute the selected tool
-            if (selected == 1) cmd_neofetch(0);
-            if (selected == 2) todo_show();
-            if (selected == 3) vga_write("Calculated. Enter 'calc' for more.\n");
-            if (selected == 4) cmd_ayah();
-            if (selected == 5) draw_custom_plane();
-            if (selected == 6) shell_lock();
+            if (selected == 1) cmd_neofetch(0); sleep(1);
+            if (selected == 2) todo_show(); sleep(1);
+            if (selected == 3) vga_write("Use it in terminal\n"); sleep(1);
+            if (selected == 4) cmd_ayah(); sleep(1);
+            if (selected == 5) draw_custom_plane(); sleep(1);
+            if (selected == 6) shell_lock(); sleep(1);
             if (selected == 7) { running = 0; }
 
             // If we didn't exit, wait for a key before returning to menu
             if (running && selected != 7) {
-                vga_write("\n\nPress any key to return to menu...");
+                // deleted bc of sleep and this shit doesnt work
                 while (!(inb(0x64) & 0x01)); 
                 inb(0x60); // Flush the buffer
             }
