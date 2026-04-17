@@ -163,6 +163,7 @@ void cmd_help(char* args) {
 
 void cmd_cls(char* args) {
     vga_clear();
+
 }
 
 void cmd_echo(char* args) {
@@ -253,6 +254,7 @@ void shell_cmd_timezone(char* arg) {
     vga_write(itoa(timezone_offset_seconds, buf));
     vga_write(" seconds.\n");
 
+
     // CRITICAL: Refresh the screen so you see the change!
     vga_draw_status_bar(); 
 }
@@ -317,6 +319,8 @@ void twins() {
     vga_write("ZANNNNNNNN\n");
     vga_write("ABDUALLAH\n");
     vga_write("MIKAY (BATTERY EATER TWINIES)\n");
+    vga_write("ALIYAH\n");
+    vga_write("AYAH\n");
 }
 
 void sys_sleep() {
