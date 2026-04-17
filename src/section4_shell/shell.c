@@ -6,6 +6,7 @@ All rights reserved.
 #include "../section1_cpu/heap.h"
 #include "../section1_cpu/io.h"
 #include "aliscr.h"
+#define NOTEBOOK_YELLOW 0x1E
 volatile int is_sleeping = 0;
 static command_node_t* command_list = 0;
 extern unsigned int get_heap_usage();
@@ -18,6 +19,7 @@ extern void play_sound();
 extern void nosound();
 extern void vga_set_cursor();
 extern void sleep();
+
 typedef struct {
     char key[16];
     char value[32];
@@ -647,6 +649,90 @@ void todo_show() {
     if(!found) vga_write("No tasks found.\n");
 }
 
+void draw_menu_item(int id, int selected, const char* text) {
+    if (id == selected) {
+        // Highlighting logic
+        vga_write(" > ");               // Arrow pointer
+        vga_set_color(0x70);            // Invert: Black text on Light Gray background
+        vga_write(text);
+        vga_set_color(NOTEBOOK_YELLOW); // Reset to standard AliOS Yellow/Blue
+    } else {
+        vga_write("   ");               // Spacer for non-selected items
+        vga_write(text);
+    }
+    vga_write("\n");
+}
+void cmd_menu(char* args) {
+    int selected = 1;
+    int total_options = 7; 
+    int running = 1;
+
+    vga_clear();
+
+    while (running) {
+        // Jump back to the top-left to overwrite, not scroll
+        vga_set_cursor(0, 0); 
+
+        // Header Section
+        vga_set_color(0x1F); // White on Blue (Status Bar Style)
+        vga_write("========================================\n");
+        vga_write("          AliOS 4.0 - TOOLBOX           \n");
+        vga_write("      (Use Arrows to Move, Enter)       \n");
+        vga_write("========================================\n\n");
+        vga_set_color(NOTEBOOK_YELLOW);
+
+        // Draw all buttons
+        draw_menu_item(1, selected, "[ 1. SYSTEM INFO (NEOFETCH) ]");
+        draw_menu_item(2, selected, "[ 2. TO-DO LIST (TDSHW)     ]");
+        draw_menu_item(3, selected, "[ 3. CALCULATOR (CALC)      ]");
+        draw_menu_item(4, selected, "[ 4. QURAN AYAH             ]");
+        draw_menu_item(5, selected, "[ 5. DRAW PLANE ART         ]");
+        draw_menu_item(6, selected, "[ 6. LOCK SYSTEM            ]");
+        draw_menu_item(7, selected, "[ 7. EXIT MENU              ]");
+        
+        vga_write("\n========================================\n");
+
+        // Polling loop for Keyboard Input
+        while (!(inb(0x64) & 0x01)) {
+            vga_draw_status_bar(); // Keeps the clock ticking!
+        }
+
+        unsigned char scancode = inb(0x60);
+
+        // Arrow and Input Logic
+        if (scancode == 0x48) {        // UP ARROW
+            if (selected > 1) selected--;
+        } 
+        else if (scancode == 0x50) {   // DOWN ARROW
+            if (selected < total_options) selected++;
+        } 
+        else if (scancode == 0x1C) {   // ENTER KEY
+            vga_clear(); 
+            
+            // Execute the selected tool
+            if (selected == 1) cmd_neofetch(0);
+            if (selected == 2) todo_show();
+            if (selected == 3) vga_write("Calculated. Enter 'calc' for more.\n");
+            if (selected == 4) cmd_ayah();
+            if (selected == 5) draw_custom_plane();
+            if (selected == 6) shell_lock();
+            if (selected == 7) { running = 0; }
+
+            // If we didn't exit, wait for a key before returning to menu
+            if (running && selected != 7) {
+                vga_write("\n\nPress any key to return to menu...");
+                while (!(inb(0x64) & 0x01)); 
+                inb(0x60); // Flush the buffer
+            }
+        }
+        else if (scancode == 0x01) {   // ESC KEY
+            running = 0;
+        }
+    }
+
+    vga_clear();
+    vga_write("Returned to AliOS Shell.\n> ");
+}
 
 /* --- Shell Logic --- */
 void shell_register_command(const char* name, const char* desc, command_func func) {
@@ -690,6 +776,7 @@ void shell_init() {
     shell_register_command("get", "Get VAR", cmd_get);
     shell_register_command("tdadd", "Add to ToDo List", todo_add);
     shell_register_command("tdshw", "Show ToDo List", todo_show);
+    shell_register_command("menu", "AliOS Menu", cmd_menu);
 }
 
 
