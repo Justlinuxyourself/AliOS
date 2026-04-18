@@ -1,4 +1,4 @@
-/* 
+(/* 
 Copyright (c) 2026 Ali  
 All rights reserved.
 */
@@ -325,6 +325,7 @@ void twins() {
     vga_write("ALIYAH\n");
     vga_write("AYAH\n");
     vga_write("DANIEL\n");
+    vga_write("ASEEL (MY SIS)\n");
 }
 
 void sys_sleep() {
