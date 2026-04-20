@@ -331,6 +331,7 @@ void twins() {
     vga_write("FATMAH/FARAH (MY AUNT)\n");
     vga_write("HEAIM\n");
     vga_write("BASMA & MALAK\n");
+    vga_write("OSAMA & SHERIF (PEAKEST UNCLES 4EVER)\n");
 }
 
 void sys_sleep() {
