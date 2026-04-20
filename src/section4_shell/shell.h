@@ -5,6 +5,7 @@ All rights reserved.
 #ifndef SHELL_H
 #define SHELL_H
 
+typedef void (*command_func)(char*);
 
 /* Dynamic Command Node */
 typedef struct command_node {
