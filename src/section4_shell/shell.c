@@ -327,6 +327,7 @@ void twins() {
     vga_write("DANIEL\n");
     vga_write("ASEEL (MY SIS)\n");
     vga_write("KHAILD\n");
+    vga_write("AMAL (ASEELS BSF)\n");
 }
 
 void sys_sleep() {
