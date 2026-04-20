@@ -5,9 +5,7 @@ All rights reserved.
 #ifndef SHELL_H
 #define SHELL_H
 
-/* Function pointer for command execution */
-typedef void (*command_func)(char*);
-// lazy fix as of 19 apr 2026, untested until 20 apr 2026
+
 /* Dynamic Command Node */
 typedef struct command_node {
     char name[32];
