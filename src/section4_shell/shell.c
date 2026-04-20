@@ -1,8 +1,7 @@
-(/* 
+/* 
 Copyright (c) 2026 Ali  
 All rights reserved.
 */
-typedef void (*command_func)(char*);
 #include "shell.h"
 #include "../section1_cpu/heap.h"
 #include "../section1_cpu/io.h"
