@@ -6,7 +6,9 @@ All rights reserved.
 #include "../section1_cpu/heap.h"
 #include "../section1_cpu/io.h"
 #include "aliscr.h"
+#include "frames.h"
 #define NOTEBOOK_YELLOW 0x1E
+#define VGA_ADDRESS 0xB8000
 volatile int is_sleeping = 0;
 static command_node_t* command_list = 0;
 extern unsigned int get_heap_usage();
@@ -747,7 +749,19 @@ void cmd_menu(char* args) {
     vga_clear();
     vga_write("Returned to AliOS Shell.\n> ");
 }
-
+void play_bad_apple() {
+     unsigned short* vga_hardware = (unsigned short*)VGA_ADDRESS;
+     for (int f = 0; f < APPLE_FRAME_COUNT; f++) {
+         const char* frame = apple_frames[f];
+         for (int i = 0; i < 1920; i++) { // Exactly 24 rows
+             vga_hardware[i] = (unsigned short)frame[i] | (unsigned short)0x0F << 8;
+         }
+         // The Status Bar at row 24 is safe!
+         if (f % 5 == 0) vga_draw_status_bar(); 
+         for (volatile int d = 0; d < 4000000; d++); 
+     }
+ }
+ 
 /* --- Shell Logic --- */
 void shell_register_command(const char* name, const char* desc, command_func func) {
     command_node_t* new_node = (command_node_t*)kmalloc(sizeof(command_node_t));
@@ -791,6 +805,7 @@ void shell_init() {
     shell_register_command("tdadd", "Add to ToDo List", todo_add);
     shell_register_command("tdshw", "Show ToDo List", todo_show);
     shell_register_command("menu", "AliOS Menu", cmd_menu);
+    shell_register_command("badapple", "Bad Apple", play_bad_apple);
 }
 
 
