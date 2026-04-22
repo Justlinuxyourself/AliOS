@@ -334,6 +334,9 @@ void twins() {
     vga_write("OSAMA & SHERIF (PEAKEST UNCLES 4EVER)\n");
     vga_write("MARCEL\n");
     vga_write("FERIBSD\n");
+    vga_write(“SUMY\n“);
+    vga_write(“KYOO\n“);
+    
 }
 
 void sys_sleep() {
