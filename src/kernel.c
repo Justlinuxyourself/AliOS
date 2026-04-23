@@ -184,13 +184,31 @@ void todo_init() {
     }
 }
 
+void log_ok(const char* msg) {
+	vga_set_color(0x0F);
+	vga_write("[  ");
+	vga_set_color(0x0A);
+	vga_write("OK");
+	vga_set_color(0x0F);
+	vga_write("  ] ");
+	vga_write(msg);
+	vga_write("\n");
+	vga_set_color(0x1E);
+}
 void kernel_main() {
     vga_clear();
+    log_ok("INIT SHELL...");
     shell_init(); 
+    log_ok("INIT TODO, KILLING GARB DATA...");
     todo_init();
+    log_ok("INIT TIMER...");
     timer_init();
+    log_ok("INIT TTYS...");
     vga_init_ttys();
+    vga_write("WELCOME TO ALIOS!!!");
+    sleep_ms(1000);
     bootup_screen();
+
     sleep_ms(1000);
 
     while (inb(0x64) & 0x01) { inb(0x60); }
