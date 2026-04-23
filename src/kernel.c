@@ -207,6 +207,7 @@ void kernel_main() {
     vga_init_ttys();
     vga_write("WELCOME TO ALIOS!!!");
     sleep_ms(1000);
+    vga_clear();
     bootup_screen();
 
     sleep_ms(1000);
