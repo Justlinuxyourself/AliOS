@@ -1,18 +1,23 @@
-/* 
-Copyright (c) 2026 Ali  
+/* Copyright (c) 2026 Ali  
 All rights reserved.
 */
 #include "io.h"
-extern unsigned long long timer_ticks;
 
-// Keep this as your core hardware logic
+extern unsigned long long timer_ticks;
+extern void timer_wait_tick(); // From my timer.c
+
+// Core Hardware Control
 void play_sound(unsigned int nFrequence) {
-    if (nFrequence == 0) return;
-    unsigned int Div = 1193180 / nFrequence;
+    if (nFrequence == 0) {
+        nosound();
+        return;
+    }
+    // PIT frequency is 1.193182 MHz
+    unsigned int Div = 1193182 / nFrequence;
     
     outb(0x43, 0xb6);
-    outb(0x42, (unsigned char) (Div) );
-    outb(0x42, (unsigned char) (Div >> 8));
+    outb(0x42, (unsigned char) (Div & 0xFF));
+    outb(0x42, (unsigned char) ((Div >> 8) & 0xFF));
 
     unsigned char tmp = inb(0x61);
     if (tmp != (tmp | 3)) {
@@ -24,34 +29,35 @@ void nosound() {
     outb(0x61, inb(0x61) & 0xFC);
 }
 
+
 void beep_ex(int duration_ms, int freq) {
+    if (freq <= 0) return;
+    
     play_sound(freq);
-    if (duration_ms > 0) {
-        // Use the function you just added to timer.c!
-        // This is much smoother than manual polling.
-        sleep_ms(duration_ms); 
+    
+    // 200Hz logic: ticks = (ms * 200) / 1000 -> ms / 5
+    unsigned long long ticks_to_wait = duration_ms / 5;
+    if (ticks_to_wait == 0) ticks_to_wait = 1;
+    
+    unsigned long long target = timer_ticks + ticks_to_wait;
+    
+    while (timer_ticks < target) {
+        timer_wait_tick(); 
     }
+    
     nosound();
 }
 
-// Shell command beep
+// Quick shell beep
 void beep() {
-    beep_ex(40, 1000); 
+    beep_ex(50, 1000); 
 }
 
-
+// Professional AliOS Startup
 void startup_melody() {
-    // Note 1: A (440Hz)
-    beep_ex(500, 440); 
-    
-    // Tiny gap between notes
-    for(volatile int i = 0; i < 500000; i++); 
-
-    // Note 2: E (659Hz)
-    beep_ex(500, 659);
-    
-    for(volatile int i = 0; i < 500000; i++);
-
-    // Note 3: High A (880Hz)
-    beep_ex(500, 880);
+    // Note: Frequency, Duration
+    beep_ex(150, 440); // A
+    beep_ex(150, 554); // C#
+    beep_ex(150, 659); // E
+    beep_ex(300, 880); // High A
 }
