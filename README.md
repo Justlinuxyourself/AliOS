@@ -63,6 +63,19 @@ AliOS 4 is a custom-built, 64-bit "Notebook" style operating system. It features
 │   └── section4_shell     # Shell Logic & Command Library
 └── linker.ld              # Kernel Memory Layout
 ```
+## 🍎 Bad Apple!! VGA Demo
+AliOS 4 includes a built-in "Bad Apple!!" ASCII animation demo to showcase the stability of the kernel's high-speed VGA memory mapping and the **Notebook-Edition** independent TTY system.
+
+### 🛠 Technical Specifications
+* **Resolution:** 80x24 (Workspace mode)
+* **Frame Rate:** ~10-15 FPS (Adjustable via kernel delay loop)
+* **Protected Status Bar:** The 25th row remains fully functional, displaying the real-time CMOS clock and active TTY ID without flickering during playback.
+* **Memory Mapping:** Direct writes to `0xB8000` using a high-performance DMA-simulated loop.
+
+### 📜 Licensing & Credits
+* **Kernel Code:** Licensed under **GNU GPLv3**.
+* **Demo Assets:** "Bad Apple!!" is a community-driven project based on *Touhou Project*. These ASCII assets are converted and included solely for demonstration of the AliOS 4 video driver.
+
 ## 🔒 Usage Policy
 You are permitted to:
 ✅ Use this OS for personal purposes  
