@@ -35,7 +35,7 @@ extern unsigned char get_failed_attempts();
 extern void set_failed_attempts(unsigned char count);
 extern void sleep_ms(int ms);
 extern void trigger_ali_morse(); // If you put the Morse code function in another file
-extern void update_speaker();
+extern void speaker_update();
 extern tty_t ttys[];        
 extern int current_tty;     
 
@@ -138,7 +138,6 @@ void lock_system_hardened() {
         while (1) {
             // SYNC: Keep the clock moving while user types password
             timer_wait_tick();
-            update_speaker();
             clock_ticks++;
             if (clock_ticks >= 100) {
                 vga_draw_status_bar();
@@ -226,7 +225,7 @@ void kernel_main() {
     while(1) {
         // FIXED: This ensures 1 loop = 1 hardware tick (10ms)
         timer_wait_tick(); 
-
+        speaker_update();
         clock_ticks++;
         if (clock_ticks >= 100) { 
             vga_draw_status_bar();
