@@ -3,8 +3,6 @@ name: AliOS Build CI
 on:
   push:
     branches: [ master, main ]
-  pull_request:
-    branches: [ master, main ]
 
 jobs:
   build:
@@ -18,6 +16,8 @@ jobs:
     steps:
     - name: Checkout Code
       uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
 
     - name: Install Dependencies
       run: |
@@ -35,18 +35,33 @@ jobs:
         python3 -c "
         with open('alios4.bin', 'rb') as f:
             data = f.read(32768)
-            # Checking for the Multiboot2 magic number 0xE85250D6
             pos = data.find(b'\xd6\x50\x52\xe8')
             if pos != -1:
-                print(f'SUCCESS: Multiboot 2 Magic found at {hex(pos)}')
+                print(f'SUCCESS: Multiboot 2 Magic found at offset: {pos}')
             else:
                 print('ERROR: Multiboot 2 header NOT FOUND')
                 exit(1)
         "
 
-    - name: Upload ISO Artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: AliOS-ISO
-        path: alios4.iso
+    - name: Prepare Release
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        # Deletes the 'latest' tag locally and remotely so it can be recreated
+        git config --global user.name "github-actions[bot]"
+        git config --global user.email "github-actions[bot]@users.noreply.github.com"
+        git tag -d latest || true
+        git push origin :refs/tags/latest || true
 
+    - name: Upload to Release
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: latest
+        name: "AliOS Nightly Build"
+        body: "Automated build containing the latest kernel, ISO, and disk image."
+        prerelease: true
+        files: |
+          alios4.iso
+          alios_disk.img
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
