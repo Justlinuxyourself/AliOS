@@ -43,8 +43,8 @@ jobs:
                 exit(1)
         "
 
-- name: Push Build Artifact
-  run: |
+    - name: Push Build Artifact
+    run: |
     # 1. Setup Identity
     git config --global user.name "AliOS-Builder[bot]"
     git config --global user.email "github-actions[bot]@users.noreply.github.com"
