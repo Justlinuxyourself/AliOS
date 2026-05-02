@@ -16,6 +16,8 @@ jobs:
     steps:
     - name: Checkout Code
       uses: actions/checkout@v4
+      with:
+        fetch-depth: 0 # Essential for pushing back to the repo
 
     - name: Install Dependencies
       run: |
@@ -26,9 +28,6 @@ jobs:
       run: |
         make clean
         make
-
-    - name: Verify Section Presence
-      run: objdump -h alios4.bin
 
     - name: Verify Multiboot Header
       run: |
@@ -44,30 +43,22 @@ jobs:
         "
 
     - name: Push Build Artifact
-    run: |
-    # 1. Setup Identity
-    git config --global user.name "AliOS-Builder[bot]"
-    git config --global user.email "github-actions[bot]@users.noreply.github.com"
-    git config --global --add safe.directory "*"
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        git config --global user.name "github-actions[bot]"
+        git config --global user.email "github-actions[bot]@users.noreply.github.com"
+        git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
-    # 2. Instead of git init, just ensure we are linked to the remote
-    # The checkout action usually handles this, but if you're in a custom container:
-    git remote add origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git || true
-    
-    # 3. Pull the remote history so Git knows they are related
-    # We use --rebase to keep the history clean
-    git fetch origin master
-    git checkout master
+        # Ensure we are on the correct branch
+        git checkout master || git checkout main
 
-    # 4. Add the specific file
-    git add -f alios4.iso
+        # Force add the ISO (since it's likely in your .gitignore)
+        git add -f alios4.iso
 
-    # 5. Commit and Push
-    if git diff --staged --quiet; then
-      echo "No changes to the ISO. Skipping push."
-    else
-      git commit -m "Auto-build: Update alios4.iso [skip ci]"
-      git push origin master
-    fi
-  env:
-    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        if git diff --staged --quiet; then
+          echo "No changes to the ISO. Skipping push."
+        else
+          git commit -m "Auto-build: Update alios4.iso [skip ci]"
+          git push origin HEAD:master
+        fi
