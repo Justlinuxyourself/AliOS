@@ -1,65 +1,59 @@
-name: AliOS Build CI
+
+name: AliOS Automatic Release
 
 on:
   push:
-    branches: [ master, main ]
+    branches:
+      - main
+  workflow_dispatch:
 
 jobs:
-  build:
+  auto-release:
+    name: Build and Auto-Release
     runs-on: ubuntu-latest
-    container:
-      image: debian:latest
-    
     permissions:
       contents: write
 
     steps:
-    - name: Checkout Code
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
-    - name: Install Dependencies
-      run: |
-        apt-get update
-        apt-get install -y nasm gcc-multilib binutils xxd grub-common xorriso mtools dosfstools git python3 build-essential
+      - name: Install Build Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            nasm \
+            gcc-multilib \
+            binutils \
+            xorriso \
+            mtools \
+            grub-common \
+            grub-pc-bin
 
-    - name: Run Build
-      run: |
-        make clean
-        make
+      - name: Build Kernel and ISO
+        run: |
+          # Ensure directories exist
+          mkdir -p bin
+          # Your existing build commands
+          make clean
+          make all
+          make iso
 
-    - name: Verify Multiboot Header
-      run: |
-        python3 -c "
-        with open('alios4.bin', 'rb') as f:
-            data = f.read(32768)
-            pos = data.find(b'\xd6\x50\x52\xe8')
-            if pos != -1:
-                print(f'SUCCESS: Multiboot 2 Magic found at offset: {pos}')
-            else:
-                print('ERROR: Multiboot 2 header NOT FOUND')
-                exit(1)
-        "
+      - name: Create or Update Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          name: "AliOS Continuous Build"
+          body: |
+            This is an automated build of AliOS for the notebook hardware.
+            
+            **Last Updated:** ${{ github.event.head_commit.timestamp }}
+            **Commit:** ${{ github.sha }}
+          files: |
+            bin/alios4.iso
+            bin/alios4.bin
+          prerelease: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Push Build Artifact
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: |
-        # This is the crucial fix for containers
-        git config --global --add safe.directory "$GITHUB_WORKSPACE"
-        
-        git config --global user.name "github-actions[bot]"
-        git config --global user.email "github-actions[bot]@users.noreply.github.com"
-
-        # Force add the ISO
-        git add -f alios4.iso
-
-        # Check if there are changes to commit
-        if git diff --staged --quiet; then
-          echo "No changes to the ISO. Skipping push."
-        else
-          git commit -m "Auto-build: Update alios4.iso [skip ci]"
-          # Use the GITHUB_TOKEN for authentication in the push URL
-          git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git HEAD:${{ github.ref_name }}
-        fi
