@@ -43,30 +43,31 @@ jobs:
                 exit(1)
         "
 
-    - name: Commit ISO
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: |
-        # Use "." instead of the variable to force current directory recognition
-        git config --global --add safe.directory "*"
-        
-        # Identity
-        git config --global user.name "AliOS-Builder[bot]"
-        git config --global user.email "github-actions[bot]@users.noreply.github.com"
-        
-        # Initialize if the container lost track of the .git folder
-        git init
-        git remote add origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git || git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
-        
-        # Fetch to ensure we are on the right branch
-        git fetch
-        git checkout ${{ github.ref_name }} || git checkout -b ${{ github.ref_name }}
+- name: Push Build Artifact
+  run: |
+    # 1. Setup Identity
+    git config --global user.name "AliOS-Builder[bot]"
+    git config --global user.email "github-actions[bot]@users.noreply.github.com"
+    git config --global --add safe.directory "*"
 
-        git add -f alios4.iso
-        
-        if git diff --staged --quiet; then
-          echo "No changes to the ISO. Skipping push."
-        else
-          git commit -m "Auto-build: Update alios4.iso [skip ci]"
-          git push origin ${{ github.ref_name }}
-        fi
+    # 2. Instead of git init, just ensure we are linked to the remote
+    # The checkout action usually handles this, but if you're in a custom container:
+    git remote add origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git || true
+    
+    # 3. Pull the remote history so Git knows they are related
+    # We use --rebase to keep the history clean
+    git fetch origin master
+    git checkout master
+
+    # 4. Add the specific file
+    git add -f alios4.iso
+
+    # 5. Commit and Push
+    if git diff --staged --quiet; then
+      echo "No changes to the ISO. Skipping push."
+    else
+      git commit -m "Auto-build: Update alios4.iso [skip ci]"
+      git push origin master
+    fi
+  env:
+    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
