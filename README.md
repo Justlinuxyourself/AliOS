@@ -2,6 +2,7 @@
 
 AliOS 4 is a custom-built, 64-bit "Notebook" style operating system. It features a hardened security model, a multi-terminal interface (TTY), and a real-time status bar calibrated for high-precision timing.
 # ISO IN ARTIFACTS!!!
+## USE alios_disk.img IF U WANNA TEST ATA SUPPORT ( U CAN MAKE ANOTHER DISK USING QEMU-IMG BUT QCOW2 IS UNTESTED)
 ## 🚀 Key Features
 
 * **64-bit Long Mode:** Boots from 32-bit Multiboot 2 into a fully functional 64-bit environment with identity-mapped paging.
