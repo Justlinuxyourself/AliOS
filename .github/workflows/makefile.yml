@@ -37,8 +37,7 @@ jobs:
           mkdir -p bin
           # Your existing build commands
           make clean
-          make all
-          make iso
+          make 
 
       - name: Create or Update Release
         uses: softprops/action-gh-release@v2
