@@ -208,7 +208,6 @@ void kernel_main() {
     timer_init();
     log_ok("INIT TTYS...");
     vga_init_ttys();
-    vga_write("WELCOME TO ALIOS!!!\n");
     sleep_ms(1000);
     vga_clear();
     bootup_screen();
@@ -218,7 +217,7 @@ void kernel_main() {
     while (inb(0x64) & 0x01) { inb(0x60); }
 
 
-    vga_write("AliOS 4 - made by a 13yo - Multi-TTY Mode\n");
+    vga_write("AliOS 4 - made by a 12-13yo - Multi-TTY Mode\n");
     vga_write("System Ready. Use Ctrl+Alt+F1-F10 to switch.\n");
     vga_write("> ");
 
