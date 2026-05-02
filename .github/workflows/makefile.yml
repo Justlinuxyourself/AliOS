@@ -3,6 +3,8 @@ name: AliOS Build CI
 on:
   push:
     branches: [ master, main ]
+  pull_request:
+    branches: [ master, main ]
 
 jobs:
   build:
@@ -16,13 +18,12 @@ jobs:
     steps:
     - name: Checkout Code
       uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
 
     - name: Install Dependencies
       run: |
         apt-get update
-        apt-get install -y nasm gcc-multilib binutils xxd grub-common xorriso mtools dosfstools git python3 build-essential
+        apt-get install -y nasm gcc-multilib binutils xxd grub-common \
+                           xorriso mtools dosfstools git python3 build-essential
 
     - name: Run Build
       run: |
@@ -34,32 +35,31 @@ jobs:
         python3 -c "
         with open('alios4.bin', 'rb') as f:
             data = f.read(32768)
+            # Checking for the Multiboot2 magic number 0xE85250D6
             pos = data.find(b'\xd6\x50\x52\xe8')
             if pos != -1:
-                print(f'SUCCESS: Multiboot 2 Magic found at offset: {pos}')
+                print(f'SUCCESS: Multiboot 2 Magic found at {hex(pos)}')
             else:
                 print('ERROR: Multiboot 2 header NOT FOUND')
                 exit(1)
         "
 
-    - name: Push Build Artifact
+    - name: Upload ISO Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: AliOS-ISO
+        path: alios4.iso
+
+    - name: Push to Branch (Optional)
+      if: github.event_name == 'push'
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        # This is the crucial fix for containers
         git config --global --add safe.directory "$GITHUB_WORKSPACE"
-        
         git config --global user.name "github-actions[bot]"
         git config --global user.email "github-actions[bot]@users.noreply.github.com"
-
-        # Force add the ISO
         git add -f alios4.iso
-
-        # Check if there are changes to commit
-        if git diff --staged --quiet; then
-          echo "No changes to the ISO. Skipping push."
-        else
+        if ! git diff --staged --quiet; then
           git commit -m "Auto-build: Update alios4.iso [skip ci]"
-          # Use the GITHUB_TOKEN for authentication in the push URL
           git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git HEAD:${{ github.ref_name }}
         fi
