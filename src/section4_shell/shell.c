@@ -293,7 +293,7 @@ void cmd_beep(){
     nosound();
 }
 void cmd_about_dev() {
-	vga_write("Hi my name is ali, my age is 13, and i like planes :3");
+	vga_write("Hi my name is ali, my age is 12-13, and i like planes :3");
 }
 void draw_custom_plane() {
     int col = 25; // Center it
