@@ -94,10 +94,13 @@ You are **NOT** allowed to:
 - Beep stutters
 - pit timer runs at 200hz instead of 100hz for some reason
 - idk/etc 🥹
-## Todo:
-- [ ] ADD: PCI Driver
-- [ ] ADD: ETH and/or WIFI Support
-- [ ] ADD: GUI Support
-- [ ] ADD: ATA Support
-- [ ] FIX: Beep stutter
-- [ ] FIX: PIT Bug (fix to 100hz without 1sec being 0.5sec)
+## Todo
+### Features
+- [ ] **PCI** | Initial bus scanning and driver support
+- [ ] **Network** | Ethernet (e.g., rtl8139) or WiFi support
+- [ ] **GUI** | Framebuffer implementation and windowing
+- [x] **ATA** | Basic RW support
+
+### Bug Fixes
+- [ ] **PIT** | Fix 100Hz timing (1s=2s on 100hz, 1s=1s on 200hz, i had to use 200hz (might not fix it bc if it works dont touch it))
+- [ ] **PC Speaker** | Resolve stuttering during `beep()` calls
