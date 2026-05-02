@@ -50,8 +50,8 @@ jobs:
             **Last Updated:** ${{ github.event.head_commit.timestamp }}
             **Commit:** ${{ github.sha }}
           files: |
-            bin/alios4.iso
-            bin/alios4.bin
+            alios4.iso
+            alios4.bin
           prerelease: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
