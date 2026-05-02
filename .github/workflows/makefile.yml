@@ -33,9 +33,6 @@ jobs:
 
       - name: Build Kernel and ISO
         run: |
-          # Ensure directories exist
-          mkdir -p bin
-          # Your existing build commands
           make clean
           make 
 
